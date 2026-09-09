@@ -126,7 +126,6 @@ export default function CompareModal({
             {/* Member A */}
             <div className="p-4 rounded-xl border-2 border-indigo-100 bg-indigo-50/20 space-y-3">
               <div className="flex items-center justify-between gap-2">
-                {/* 검색 버튼으로 대체 */}
                 <button
                   onClick={() => setSearchTarget("A")}
                   className="flex items-center gap-1.5 font-bold text-xs sm:text-sm bg-white border border-indigo-200 rounded-lg px-2.5 py-1.5 text-indigo-950 hover:bg-indigo-50 transition-colors shadow-sm truncate max-w-[200px]"
@@ -175,7 +174,6 @@ export default function CompareModal({
             {/* Member B */}
             <div className="p-4 rounded-xl border-2 border-rose-100 bg-rose-50/20 space-y-3">
               <div className="flex items-center justify-between gap-2">
-                {/* 검색 버튼으로 대체 */}
                 <button
                   onClick={() => setSearchTarget("B")}
                   className="flex items-center gap-1.5 font-bold text-xs sm:text-sm bg-white border border-rose-200 rounded-lg px-2.5 py-1.5 text-rose-950 hover:bg-rose-50 transition-colors shadow-sm truncate max-w-[200px]"
@@ -225,7 +223,7 @@ export default function CompareModal({
 
         </div>
 
-        {/* 모달 푸터 */}
+        {/* 푸터 */}
         <div className="p-3 sm:p-4 border-t border-slate-200 bg-slate-50 flex justify-end shrink-0">
           <button
             onClick={onClose}
@@ -251,5 +249,4 @@ export default function CompareModal({
       />
     </div>
   );
-}
 }
