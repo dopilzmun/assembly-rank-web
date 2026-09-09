@@ -3,7 +3,7 @@ import pool from "@/lib/db";
 import { RowDataPacket } from "mysql2";
 import { WeeklyRadarStats, PipelineEvent, WeeklyActiveMover } from "@/types/activity";
 import LiveRadarView from "@/components/LiveRadarView";
-import { Zap } from "lucide-react";
+import { Zap, Activity, Flame, CheckCircle2, Clock, FileText } from "lucide-react";
 
 export const revalidate = 86400;
 const CURRENT_AGE = 22;
@@ -67,7 +67,7 @@ async function getWeeklyRadarData(): Promise<WeeklyRadarStats> {
         COALESCE(b.cmt_present_dd, '1900-01-01'),
         COALESCE(b.motn_dd, '1900-01-01')
       ) DESC
-      LIMIT 15;`,
+      LIMIT 25;`,
       [CURRENT_AGE]
     );
 
@@ -136,26 +136,82 @@ async function getWeeklyRadarData(): Promise<WeeklyRadarStats> {
 export default async function LivePage() {
   const weeklyRadar = await getWeeklyRadarData();
 
+  // 최근 14일 파이프라인 진척도 계산
+  const motn = weeklyRadar.recent_motn_total || 1;
+  const presentRate = Math.min(100, Math.round((weeklyRadar.recent_present_total / motn) * 100));
+  const aprvRate = Math.min(100, Math.round((weeklyRadar.recent_aprv_total / motn) * 100));
+
   return (
     <main className="py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
         
         {/* 페이지 슬림 헤더 */}
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-sm shrink-0">
-            <Zap className="w-5 h-5" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-sm shrink-0">
+              <Zap className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                실시간 입법 파이프라인 & 뉴스룸
+              </h1>
+              <p className="text-slate-500 text-xs mt-0.5">
+                최근 2주간 국회 법안 발의·상정·가결 트렌드 및 타임라인 실시간 모니터링
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-              실시간 입법 파이프라인 & 레이더
-            </h1>
-            <p className="text-slate-500 text-xs mt-0.5">
-              국회 본회의 및 소관 상임위원회 법안 처리 현황 실시간 동기화
-            </p>
+          <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold font-mono">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            실시간 연동 중
+          </span>
+        </div>
+
+        {/* 신설: 최근 14일 입법 처리 진척도 요약 배너 */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-indigo-600" />
+              <h3 className="font-bold text-xs sm:text-sm text-slate-900">
+                최근 2주간 입법 파이프라인 처리 효율
+              </h3>
+            </div>
+            <span className="text-[11px] font-mono text-slate-400">
+              기준: {weeklyRadar.period_label}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono">
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] text-slate-400 block font-sans">신규 접수 (발의)</span>
+                <strong className="text-base font-black text-slate-900">{weeklyRadar.recent_motn_total}건</strong>
+              </div>
+              <FileText className="w-5 h-5 text-slate-400" />
+            </div>
+
+            <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] text-indigo-600 block font-sans">상임위 심사 착수 (상정)</span>
+                <strong className="text-base font-black text-indigo-700">
+                  {weeklyRadar.recent_present_total}건 <span className="text-xs font-normal">({presentRate}%)</span>
+                </strong>
+              </div>
+              <Clock className="w-5 h-5 text-indigo-500" />
+            </div>
+
+            <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] text-emerald-700 block font-sans">본회의 최종 통과 (가결)</span>
+                <strong className="text-base font-black text-emerald-700">
+                  {weeklyRadar.recent_aprv_total}건 <span className="text-xs font-normal">({aprvRate}%)</span>
+                </strong>
+              </div>
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+            </div>
           </div>
         </div>
 
-        {/* 입법 레이더 & 실시간 라이브 피드 타임라인 전수 노출 */}
+        {/* 기존 레이더 & 필터 내장 라이브 피드 뷰 */}
         <LiveRadarView data={weeklyRadar} />
 
       </div>
