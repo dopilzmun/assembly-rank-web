@@ -17,6 +17,8 @@ import {
   ShieldAlert,
   BarChart2,
   Sparkles,
+  Share2,
+  Check,
 } from "lucide-react";
 
 interface AssembDetailDrawerProps {
@@ -33,6 +35,7 @@ export default function AssembDetailDrawer({
   const [activeTab, setActiveTab] = useState<"aprv" | "pending">("aprv");
   const [billData, setBillData] = useState<AssembBillListResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!assemb) return;
@@ -70,6 +73,37 @@ export default function AssembDetailDrawer({
 
   if (!assemb) return null;
 
+  // 원클릭 공유 및 클립보드 복사 핸들러
+  const handleShare = async () => {
+    if (typeof window === "undefined") return;
+
+    const shareUrl = `${window.location.origin}${window.location.pathname}?member=${assemb.assemb_id}`;
+    const shareTitle = `[입법 모니터] ${assemb.assemb_nm} 의원 (${assemb.pltprt_nm}) 입법 성적표`;
+    const shareText = `${assemb.assemb_nm} 의원의 대표발의 ${assemb.ttl_motn_cnt}건, 본회의 실질가결 ${assemb.aprv_cnt}건 성적표와 6대 역량 지표를 확인해보세요.`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl,
+        });
+        return;
+      } catch (err) {
+        // 사용자가 공유창 취소 시 무시
+      }
+    }
+
+    // fallback: 클립보드 복사
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+    } catch (err) {
+      console.error("클립보드 복사 실패:", err);
+    }
+  };
+
   const currentList = activeTab === "aprv" ? billData?.aprv_bills : billData?.pending_bills;
   const isDeferred = assemb.is_deferred === 1;
   const totalMotnCnt = Number(assemb.ttl_motn_cnt) || 0;
@@ -99,12 +133,34 @@ export default function AssembDetailDrawer({
                 </span>
                 <span className="text-xs text-slate-500">{assemb.rgn_nm || "비례대표"}</span>
               </div>
-              <button
-                onClick={onClose}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              
+              <div className="flex items-center gap-1.5">
+                {/* 상단 공유 버튼 */}
+                <button
+                  onClick={handleShare}
+                  title="의원 성적표 다이렉트 링크 공유"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all bg-white border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200 shadow-sm"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="text-emerald-700 font-bold">복사됨!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span>공유</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={onClose}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* 의원 소속 상임위 및 임기 개시일 */}
@@ -332,16 +388,24 @@ export default function AssembDetailDrawer({
 
           {/* 4. 드로어 푸터 */}
           <div className="p-4 border-t border-slate-200 bg-white flex justify-between items-center text-xs">
-            {onOpenCompareWith ? (
+            <div className="flex items-center gap-2">
+              {onOpenCompareWith && (
+                <button
+                  onClick={() => onOpenCompareWith(assemb)}
+                  className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg font-semibold transition-colors flex items-center gap-1.5"
+                >
+                  ⚔️ 1:1 맞비교
+                </button>
+              )}
               <button
-                onClick={() => onOpenCompareWith(assemb)}
-                className="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg font-semibold transition-colors flex items-center gap-1.5"
+                onClick={handleShare}
+                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-colors flex items-center gap-1.5"
               >
-                ⚔️ 다른 의원과 1:1 비교
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5" />}
+                <span>{copied ? "링크 복사됨!" : "성적표 공유"}</span>
               </button>
-            ) : (
-              <span className="text-slate-400">국회 의안정보시스템 Open API 연동</span>
-            )}
+            </div>
+            
             <button
               onClick={onClose}
               className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors"

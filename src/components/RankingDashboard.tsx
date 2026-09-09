@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { BillRankingRow } from "@/types/ranking";
 import { WeeklyRadarStats } from "@/types/activity";
 import AssembDetailDrawer from "@/components/AssembDetailDrawer";
@@ -89,10 +89,37 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
   const [compareList, setCompareList] = useState<BillRankingRow[]>([]);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
 
+  // 1. URL 쿼리 파라미터(?member=XXX) 기반 다이렉트 접속 시 자동 Drawer 오픈
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const memberId = params.get("member");
+    if (memberId) {
+      const target = initialData.find((m) => m.assemb_id === memberId);
+      if (target) {
+        setSelectedAssemb(target);
+      }
+    }
+  }, [initialData]);
+
+  // 2. 의원 선택 시 URL 파라미터 동기화 (히스토리 교체)
+  const handleSelectAssemb = (row: BillRankingRow | null) => {
+    setSelectedAssemb(row);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      if (row) {
+        url.searchParams.set("member", row.assemb_id);
+      } else {
+        url.searchParams.delete("member");
+      }
+      window.history.replaceState({}, "", url.toString());
+    }
+  };
+
   const handleSelectAssembById = (assembId: string) => {
     const target = initialData.find((m) => m.assemb_id === assembId);
     if (target) {
-      setSelectedAssemb(target);
+      handleSelectAssemb(target);
     }
   };
 
@@ -312,7 +339,7 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
         </div>
       </div>
 
-      {/* 2. 지표 배너 (실질가결 산정 기준 안내 반영) */}
+      {/* 2. 지표 배너 */}
       <div className="bg-indigo-50/80 border border-indigo-100 rounded-lg p-3 text-xs text-indigo-950 flex flex-wrap gap-x-5 gap-y-1.5 items-center">
         <span className="font-bold flex items-center gap-1 text-indigo-700">
           <Award className="w-4 h-4 text-indigo-600" /> 종합 점수 (100점):
@@ -441,7 +468,7 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
                   return (
                     <tr
                       key={row.assemb_id}
-                      onClick={() => setSelectedAssemb(row)}
+                      onClick={() => handleSelectAssemb(row)}
                       className={`hover:bg-indigo-50/50 cursor-pointer transition-colors group ${
                         isSelectedForCompare ? "bg-indigo-50/60" : isDeferred ? "bg-slate-50/40 opacity-75" : ""
                       }`}
@@ -585,7 +612,6 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
                         )}
                       </td>
 
-                      {/* 본회의 실질가결 (순수가결 + 대안반영 상세 분리 표기) */}
                       <td className="py-3.5 px-3 text-right whitespace-nowrap">
                         <div className="flex flex-col items-end">
                           <span
@@ -677,11 +703,11 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
       {/* 5. 의원 상세 Drawer */}
       <AssembDetailDrawer
         assemb={selectedAssemb}
-        onClose={() => setSelectedAssemb(null)}
+        onClose={() => handleSelectAssemb(null)}
         onOpenCompareWith={(m) => {
           const secondMember = initialData.find((cand) => cand.assemb_id !== m.assemb_id) || m;
           setCompareList([m, secondMember]);
-          setSelectedAssemb(null);
+          handleSelectAssemb(null);
           setIsCompareModalOpen(true);
         }}
       />

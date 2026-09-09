@@ -14,12 +14,41 @@ export const revalidate = 3600;
 
 const CURRENT_AGE = 22;
 
+// 배포 환경 및 로컬 환경 도메인 자동 감지
+const siteUrl = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: `국회의원 입법활동 지표 모니터 | 제${CURRENT_AGE}대 국회`,
-  description: `열린국회정보 Open API 기반 제${CURRENT_AGE}대 국회의원 법안 발의·상정·가결 지표 분석 모니터`,
+  description: `열린국회정보 Open API 기반 제${CURRENT_AGE}대 국회의원 법안 발의·상정·실질가결 지표 및 6대 역량 분석 모니터`,
+  keywords: [
+    "국회의원",
+    "입법활동",
+    "국회",
+    "법안",
+    "의안정보",
+    "의정평가",
+    "제22대 국회",
+    "가결률",
+    "국회의원 순위",
+  ],
+  openGraph: {
+    title: `국회의원 입법활동 지표 모니터 | 제${CURRENT_AGE}대 국회`,
+    description: `열린국회정보 Open API 기반 제${CURRENT_AGE}대 국회의원 법안 발의·상임위 상정·실질가결 6대 성과 지표 전수 분석`,
+    url: siteUrl,
+    siteName: "국회의원 입법활동 지표 모니터",
+    locale: "ko_KR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `국회의원 입법활동 지표 모니터 | 제${CURRENT_AGE}대 국회`,
+    description: `열린국회정보 Open API 기반 제${CURRENT_AGE}대 국회의원 법안 발의·상임위 상정·실질가결 6대 성과 지표 전수 분석`,
+  },
 };
 
-// 1. 의원별 지표 뷰 조회
 async function getBillRankings(): Promise<BillRankingRow[]> {
   try {
     const [rows] = await pool.query<RowDataPacket[]>(
@@ -62,7 +91,6 @@ async function getBillRankings(): Promise<BillRankingRow[]> {
   }
 }
 
-// 2. 국회 총괄 거시 지표 집계
 async function getMacroOverview(): Promise<MacroOverviewStats> {
   try {
     const query = `
@@ -108,7 +136,6 @@ async function getMacroOverview(): Promise<MacroOverviewStats> {
   }
 }
 
-// 3. 정당별 지표 집계
 async function getPartyStats(): Promise<PartyOverviewStats[]> {
   try {
     const query = `
@@ -143,7 +170,6 @@ async function getPartyStats(): Promise<PartyOverviewStats[]> {
   }
 }
 
-// 4. (신규) 상임위별 입법 병목 분석 지표 집계
 async function getCommitteeBottleneckData(): Promise<CommitteeBottleneckStats[]> {
   try {
     const query = `
@@ -176,7 +202,6 @@ async function getCommitteeBottleneckData(): Promise<CommitteeBottleneckStats[]>
   }
 }
 
-// 5. 금주의 입법 레이더 & 실시간 피드 집계
 async function getWeeklyRadarData(): Promise<WeeklyRadarStats> {
   try {
     const [anchorRows] = await pool.query<RowDataPacket[]>(
@@ -310,7 +335,6 @@ export default async function HomePage() {
   return (
     <main className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* 서비스 타이틀 헤더 */}
         <div>
           <div className="flex flex-wrap items-center gap-3 mb-2">
             <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-sm">
@@ -328,10 +352,10 @@ export default async function HomePage() {
           </p>
         </div>
 
-        {/* 1. 최상단 거시 요약 통계 카드 & 정당별 파이프라인 차트 */}
+        {/* 1. 거시 요약 통계 카드 & 정당별 파이프라인 차트 */}
         <MacroStatsCards overview={macroOverview} parties={partyStats} />
 
-        {/* 2. (신규) 상임위원회별 입법 병목 분석 섹션 */}
+        {/* 2. 상임위원회별 입법 병목 분석 섹션 */}
         <CommitteeBottleneckSection data={committeeStats} />
 
         {/* 3. 주간 레이더 및 의원별 랭킹 대시보드 */}
