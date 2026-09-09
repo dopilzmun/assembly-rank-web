@@ -1,186 +1,165 @@
 "use client";
 
-interface RadarDataset {
+// 유연한 동적 키를 허용하여 TS2740 타입 불일치 에러를 방지합니다.
+export type RadarStats = Record<string, number>;
+
+export interface RadarDataset {
   label: string;
-  color: string;       // e.g. "#4f46e5"
-  fillColor: string;   // e.g. "rgba(79, 70, 229, 0.25)"
-  stats: number[];     // 6개 수치 (0 ~ 100)
+  color: string;
+  fillColor: string;
+  stats: RadarStats;
 }
 
-interface RadarChartProps {
+export interface RadarChartProps {
+  size?: number;
   data1: RadarDataset;
   data2?: RadarDataset;
-  size?: number;
 }
 
-const AXIS_LABELS = [
-  "발의 규모",
-  "소속위 집중",
-  "심사 상정률",
-  "심사 신속도",
-  "본회의 가결수",
-  "본회의 가결률",
-];
-
-export default function RadarChart({ data1, data2, size = 300 }: RadarChartProps) {
+export default function RadarChart({ size = 240, data1, data2 }: RadarChartProps) {
+  const labels = Object.keys(data1.stats);
+  const totalAxes = labels.length || 6;
   const center = size / 2;
-  const radius = (size / 2) - 45;
-  const numAxes = 6;
-  const angleStep = (Math.PI * 2) / numAxes;
+  const radius = center * 0.62; // 외곽 라벨 여백 확보
 
-  // 축 각도 및 좌표 계산 함수 (12시 방향부터 시계방향)
-  const getCoordinates = (value: number, index: number) => {
-    const angle = index * angleStep - Math.PI / 2;
-    const r = (Math.max(0, Math.min(100, value)) / 100) * radius;
+  // 중심 기준 각 꼭짓점 좌표 계산 (12시 방향부터 시계방향)
+  const getCoordinates = (index: number, valueRatio: number) => {
+    const angle = ((Math.PI * 2) / totalAxes) * index - Math.PI / 2;
+    const r = radius * valueRatio;
     return {
       x: center + r * Math.cos(angle),
       y: center + r * Math.sin(angle),
     };
   };
 
-  // 배경 동심 육각형 생성 (20%, 40%, 60%, 80%, 100%)
-  const levels = [0.2, 0.4, 0.6, 0.8, 1.0];
-  const gridPolygons = levels.map((lvl) => {
-    const points = Array.from({ length: numAxes }).map((_, i) => {
-      const angle = i * angleStep - Math.PI / 2;
-      const r = lvl * radius;
-      return `${center + r * Math.cos(angle)},${center + r * Math.sin(angle)}`;
-    });
-    return points.join(" ");
-  });
-
-  // 데이터 폴리곤 좌표 문자열 계산
-  const getPointsString = (stats: number[]) => {
-    return stats
-      .map((val, i) => {
-        const { x, y } = getCoordinates(val, i);
+  // 폴리곤 points 문자열 생성
+  const getPolygonPoints = (stats: RadarStats) => {
+    return labels
+      .map((key, i) => {
+        const val = Math.max(0, Math.min(100, stats[key] ?? 0));
+        const { x, y } = getCoordinates(i, val / 100);
         return `${x},${y}`;
       })
       .join(" ");
   };
 
-  return (
-    <div className="flex flex-col items-center justify-center select-none">
-      <svg width={size} height={size} className="overflow-visible">
-        {/* 1. 배경 그리드 망 */}
-        {gridPolygons.map((pts, idx) => (
-          <polygon
-            key={idx}
-            points={pts}
-            fill={idx === levels.length - 1 ? "#f8fafc" : "transparent"}
-            stroke="#e2e8f0"
-            strokeWidth="1"
-            strokeDasharray={idx === levels.length - 1 ? undefined : "2 2"}
-          />
-        ))}
+  const gridLevels = [0.2, 0.4, 0.6, 0.8, 1.0];
 
-        {/* 2. 축 가이드 라인 */}
-        {Array.from({ length: numAxes }).map((_, i) => {
-          const angle = i * angleStep - Math.PI / 2;
-          const x2 = center + radius * Math.cos(angle);
-          const y2 = center + radius * Math.sin(angle);
+  return (
+    <div
+      className="relative flex items-center justify-center select-none"
+      style={{ width: size, height: size }}
+    >
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        className="overflow-visible"
+      >
+        {/* 1. 배경 거미줄 방사형 그리드 */}
+        {gridLevels.map((lvl) => {
+          const points = Array.from({ length: totalAxes })
+            .map((_, i) => {
+              const { x, y } = getCoordinates(i, lvl);
+              return `${x},${y}`;
+            })
+            .join(" ");
           return (
-            <line
-              key={i}
-              x1={center}
-              y1={center}
-              x2={x2}
-              y2={y2}
-              stroke="#cbd5e1"
+            <polygon
+              key={`grid-${lvl}`}
+              points={points}
+              fill="none"
+              stroke="#e2e8f0"
               strokeWidth="1"
             />
           );
         })}
 
-        {/* 3. 첫 번째 의원 데이터 폴리곤 */}
-        <polygon
-          points={getPointsString(data1.stats)}
-          fill={data1.fillColor}
-          stroke={data1.color}
-          strokeWidth="2.5"
-          className="transition-all duration-300"
-        />
-        {data1.stats.map((val, i) => {
-          const { x, y } = getCoordinates(val, i);
+        {/* 2. 중심 방사 축 선 */}
+        {Array.from({ length: totalAxes }).map((_, i) => {
+          const { x, y } = getCoordinates(i, 1.0);
           return (
-            <circle
-              key={`d1-${i}`}
-              cx={x}
-              cy={y}
-              r="4"
-              fill={data1.color}
-              stroke="#ffffff"
-              strokeWidth="1.5"
+            <line
+              key={`axis-${i}`}
+              x1={center}
+              y1={center}
+              x2={x}
+              y2={y}
+              stroke="#e2e8f0"
+              strokeWidth="1"
             />
           );
         })}
 
-        {/* 4. 두 번째 의원 데이터 폴리곤 (맞비교 시) */}
+        {/* 3. 비교 대상 (Member B) 레이더 영역 */}
         {data2 && (
-          <>
+          <g>
             <polygon
-              points={getPointsString(data2.stats)}
+              points={getPolygonPoints(data2.stats)}
               fill={data2.fillColor}
               stroke={data2.color}
-              strokeWidth="2.5"
-              className="transition-all duration-300"
+              strokeWidth="2"
+              strokeLinejoin="round"
             />
-            {data2.stats.map((val, i) => {
-              const { x, y } = getCoordinates(val, i);
+            {labels.map((key, i) => {
+              const val = Math.max(0, Math.min(100, data2.stats[key] ?? 0));
+              const { x, y } = getCoordinates(i, val / 100);
               return (
                 <circle
-                  key={`d2-${i}`}
+                  key={`dot2-${i}`}
                   cx={x}
                   cy={y}
-                  r="4"
+                  r="3"
                   fill={data2.color}
-                  stroke="#ffffff"
-                  strokeWidth="1.5"
                 />
               );
             })}
-          </>
+          </g>
         )}
 
-        {/* 5. 축 레이블 텍스트 */}
-        {AXIS_LABELS.map((label, i) => {
-          const angle = i * angleStep - Math.PI / 2;
-          const labelR = radius + 22;
-          const lx = center + labelR * Math.cos(angle);
-          const ly = center + labelR * Math.sin(angle);
+        {/* 4. 메인 대상 (Member A) 레이더 영역 */}
+        <g>
+          <polygon
+            points={getPolygonPoints(data1.stats)}
+            fill={data1.fillColor}
+            stroke={data1.color}
+            strokeWidth="2.5"
+            strokeLinejoin="round"
+          />
+          {labels.map((key, i) => {
+            const val = Math.max(0, Math.min(100, data1.stats[key] ?? 0));
+            const { x, y } = getCoordinates(i, val / 100);
+            return (
+              <circle
+                key={`dot1-${i}`}
+                cx={x}
+                cy={y}
+                r="3.5"
+                fill={data1.color}
+              />
+            );
+          })}
+        </g>
 
-          let anchor: "start" | "middle" | "end" = "middle";
-          if (Math.cos(angle) > 0.3) anchor = "start";
-          else if (Math.cos(angle) < -0.3) anchor = "end";
-
+        {/* 5. 꼭짓점 축 지표 텍스트 라벨 */}
+        {labels.map((label, i) => {
+          const { x, y } = getCoordinates(i, 1.28);
           return (
             <text
-              key={i}
-              x={lx}
-              y={ly}
-              textAnchor={anchor}
+              key={`label-${i}`}
+              x={x}
+              y={y}
+              textAnchor="middle"
               dominantBaseline="central"
-              className="text-[11px] font-semibold fill-slate-600"
+              fontSize="10"
+              fontWeight="600"
+              fill="#64748b"
             >
               {label}
             </text>
           );
         })}
       </svg>
-
-      {/* 범례 (맞비교 모드인 경우) */}
-      {data2 && (
-        <div className="flex items-center gap-4 mt-2 text-xs">
-          <div className="flex items-center gap-1.5 font-medium">
-            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: data1.color }} />
-            <span>{data1.label}</span>
-          </div>
-          <div className="flex items-center gap-1.5 font-medium">
-            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: data2.color }} />
-            <span>{data2.label}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
