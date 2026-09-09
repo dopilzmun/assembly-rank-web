@@ -2,8 +2,9 @@ import { Metadata } from "next";
 import pool from "@/lib/db";
 import { RowDataPacket } from "mysql2";
 import { WeeklyRadarStats, PipelineEvent, WeeklyActiveMover } from "@/types/activity";
-import LiveRadarView from "@/components/LiveRadarView";
-import { Zap, Activity, Flame, CheckCircle2, Clock, FileText } from "lucide-react";
+import { BillRankingRow } from "@/types/ranking";
+import LiveInteractiveSection from "@/components/LiveInteractiveSection";
+import { Zap, Activity, FileText, Clock, CheckCircle2 } from "lucide-react";
 
 export const revalidate = 86400;
 const CURRENT_AGE = 22;
@@ -133,10 +134,33 @@ async function getWeeklyRadarData(): Promise<WeeklyRadarStats> {
   }
 }
 
-export default async function LivePage() {
-  const weeklyRadar = await getWeeklyRadarData();
+// 라이브 탭 전용으로 의원 기본 마스터 및 랭킹 스코어 데이터를 일괄 로드
+async function getAllMembersForLive(): Promise<BillRankingRow[]> {
+  try {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT 
+        assemb_id, age, assemb_nm, pltprt_nm, rgn_nm, cmit_nm,
+        DATE_FORMAT(term_start_dd, '%Y-%m-%d') AS term_start_dd,
+        is_deferred, monthly_pace, ttl_motn_cnt, pure_aprv_cnt, alt_aprv_cnt,
+        aprv_cnt, dss_cnt, aprv_rate, cmt_present_cnt, cmt_present_rate,
+        avg_cmt_days, own_cmit_motn_cnt, own_cmit_motn_rate, score, rnkg
+      FROM vw_bill_efct_rnkg_01
+      WHERE age = ?;`,
+      [CURRENT_AGE]
+    );
+    return rows as BillRankingRow[];
+  } catch (error) {
+    console.error("Failed to fetch members for live page:", error);
+    return [];
+  }
+}
 
-  // 최근 14일 파이프라인 진척도 계산
+export default async function LivePage() {
+  const [weeklyRadar, allMembers] = await Promise.all([
+    getWeeklyRadarData(),
+    getAllMembersForLive(),
+  ]);
+
   const motn = weeklyRadar.recent_motn_total || 1;
   const presentRate = Math.min(100, Math.round((weeklyRadar.recent_present_total / motn) * 100));
   const aprvRate = Math.min(100, Math.round((weeklyRadar.recent_aprv_total / motn) * 100));
@@ -166,7 +190,7 @@ export default async function LivePage() {
           </span>
         </div>
 
-        {/* 신설: 최근 14일 입법 처리 진척도 요약 배너 */}
+        {/* 입법 파이프라인 효율 배너 */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -211,8 +235,8 @@ export default async function LivePage() {
           </div>
         </div>
 
-        {/* 기존 레이더 & 필터 내장 라이브 피드 뷰 */}
-        <LiveRadarView data={weeklyRadar} />
+        {/* 라이브 상호작용 클라이언트 컴포넌트 (성적표 Drawer 내장) */}
+        <LiveInteractiveSection data={weeklyRadar} allMembers={allMembers} />
 
       </div>
     </main>
