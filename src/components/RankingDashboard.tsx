@@ -59,7 +59,7 @@ function getLegislativeTag(row: BillRankingRow) {
     return {
       label: "평가 유예",
       style: "bg-slate-100 text-slate-500 border-slate-300",
-      tooltip: "임기 개시 후 100일 미만 의원으로, 통계적 최소 표본 보호를 위해 종합 순위 산정이 유예됩니다.",
+      tooltip: "임기 개시 후 100일 미만 의원으로, 종합 순위 산정이 유예됩니다.",
       isSpecial: true,
     };
   }
@@ -69,7 +69,7 @@ function getLegislativeTag(row: BillRankingRow) {
     return {
       label: "직무 특수",
       style: "bg-slate-100 text-slate-600 border-slate-200",
-      tooltip: "국회의장단, 정당 지도부(원내대표·당대표), 장관 겸직 등의 사유로 개별 발의가 없는 경우입니다.",
+      tooltip: "의장단, 정당 지도부, 장관 겸직 등의 사유로 개별 발의가 없는 경우입니다.",
       isSpecial: true,
     };
   }
@@ -89,7 +89,6 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
   const [compareList, setCompareList] = useState<BillRankingRow[]>([]);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
 
-  // 1. URL 쿼리 파라미터(?member=XXX) 기반 다이렉트 접속 시 자동 Drawer 오픈
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
@@ -102,7 +101,6 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
     }
   }, [initialData]);
 
-  // 2. 의원 선택 시 URL 파라미터 동기화 (히스토리 교체)
   const handleSelectAssemb = (row: BillRankingRow | null) => {
     setSelectedAssemb(row);
     if (typeof window !== "undefined") {
@@ -245,7 +243,7 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
 
   return (
     <div className="space-y-6">
-      {/* 0. 최근 입법 레이더 & 실시간 파이프라인 피드 위젯 */}
+      {/* 주간 레이더 & 실시간 피드 */}
       {weeklyRadar && (
         <LegislativeLiveRadar
           data={weeklyRadar}
@@ -253,57 +251,51 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
         />
       )}
 
-      {/* 1. 컨트롤 패널 */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
+      {/* 1. 검색 및 필터 컨트롤 패널 */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sm:p-5 space-y-3 sm:space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          <div className="relative flex-1 max-w-md">
+          <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               placeholder="의원명, 지역구, 상임위 검색 (예: 종로, 교육위, 김선교)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1.5">
-              <Filter className="w-4 h-4 text-slate-400 hidden sm:inline" />
-              <select
-                value={selectedParty}
-                onChange={(e) => setSelectedParty(e.target.value)}
-                className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="ALL">전체 정당 ({initialData.length}명)</option>
-                {partyList.map((party) => (
-                  <option key={party} value={party}>
-                    {party}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
+            <select
+              value={selectedParty}
+              onChange={(e) => setSelectedParty(e.target.value)}
+              className="w-full sm:w-auto px-3 py-2 text-xs sm:text-sm border border-slate-200 rounded-lg bg-white text-slate-700 focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="ALL">전체 정당 ({initialData.length}명)</option>
+              {partyList.map((party) => (
+                <option key={party} value={party}>
+                  {party}
+                </option>
+              ))}
+            </select>
 
-            <div className="flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-slate-400 hidden sm:inline" />
-              <select
-                value={selectedCmit}
-                onChange={(e) => setSelectedCmit(e.target.value)}
-                className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 max-w-[200px]"
-              >
-                <option value="ALL">전체 소속 상임위</option>
-                {committeeList.map((cmit) => (
-                  <option key={cmit} value={cmit}>
-                    {cmit}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <select
+              value={selectedCmit}
+              onChange={(e) => setSelectedCmit(e.target.value)}
+              className="w-full sm:w-auto px-3 py-2 text-xs sm:text-sm border border-slate-200 rounded-lg bg-white text-slate-700 focus:ring-2 focus:ring-indigo-500 max-w-[200px]"
+            >
+              <option value="ALL">전체 상임위</option>
+              {committeeList.map((cmit) => (
+                <option key={cmit} value={cmit}>
+                  {cmit}
+                </option>
+              ))}
+            </select>
 
             {isFilterActive && (
               <button
                 onClick={resetFilters}
-                className="inline-flex items-center gap-1 px-3 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 초기화
@@ -312,34 +304,53 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
           </div>
         </div>
 
-        {/* 최소 발의 건수 허들 */}
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 text-xs">
-          <span className="font-semibold text-slate-500 mr-2">최소 발의 건수:</span>
-          {[
-            { label: "전체 (0건 이상)", value: 0 },
-            { label: "5건 이상", value: 5 },
-            { label: "10건 이상 (권장)", value: 10 },
-            { label: "20건 이상", value: 20 },
-          ].map((btn) => (
-            <button
-              key={btn.value}
-              onClick={() => setMinBills(btn.value)}
-              className={`px-3 py-1.5 rounded-full font-medium transition-all ${
-                minBills === btn.value
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-              }`}
+        {/* 발의 건수 허들 및 정렬 셀렉터 */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <span className="font-semibold text-slate-500 mr-1">최소 발의:</span>
+            {[
+              { label: "전체", value: 0 },
+              { label: "5건+", value: 5 },
+              { label: "10건+", value: 10 },
+              { label: "20건+", value: 20 },
+            ].map((btn) => (
+              <button
+                key={btn.value}
+                onClick={() => setMinBills(btn.value)}
+                className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full font-medium text-[11px] sm:text-xs transition-all ${
+                  minBills === btn.value
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                {btn.label}
+              </button>
+            ))}
+          </div>
+
+          {/* 모바일 전용 정렬 셀렉터 (카드 뷰 편의성) */}
+          <div className="flex items-center gap-1.5 md:hidden ml-auto">
+            <span className="text-slate-400 text-[11px]">정렬:</span>
+            <select
+              value={`${sortField}-${sortDirection}`}
+              onChange={(e) => {
+                const [f, d] = e.target.value.split("-") as [SortField, SortDirection];
+                setSortField(f);
+                setSortDirection(d);
+              }}
+              className="text-xs bg-slate-100 border border-slate-200 rounded-lg px-2 py-1 font-semibold text-slate-700"
             >
-              {btn.label}
-            </button>
-          ))}
-          <span className="text-slate-400 text-[11px] ml-auto hidden lg:inline">
-            * 각 행의 [VS] 버튼을 클릭해 2명의 국회의원을 1:1 맞비교할 수 있습니다.
-          </span>
+              <option value="rnkg-asc">순위 높은순</option>
+              <option value="score-desc">종합점수순</option>
+              <option value="ttl_motn_cnt-desc">대표발의순</option>
+              <option value="aprv_cnt-desc">본회의가결순</option>
+              <option value="cmt_present_rate-desc">상임위상정률순</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* 2. 지표 배너 */}
+      {/* 종합점수 안내 배너 */}
       <div className="bg-indigo-50/80 border border-indigo-100 rounded-lg p-3 text-xs text-indigo-950 flex flex-wrap gap-x-5 gap-y-1.5 items-center">
         <span className="font-bold flex items-center gap-1 text-indigo-700">
           <Award className="w-4 h-4 text-indigo-600" /> 종합 점수 (100점):
@@ -347,30 +358,157 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
         <span>
           <strong>실질가결 성과(45점)</strong> [원안 100% + 대안반영 70%] + <strong>심사 추진력(35점)</strong> + <strong>입법 규모(20점)</strong>
         </span>
-        <span className="text-slate-500 hidden md:inline">
-          | 각 지표 하단 회색 수치는 모수(건수/페이스)입니다.
-        </span>
       </div>
 
-      {/* 결과 수치 안내 */}
+      {/* 결과 수치 카운터 */}
       <div className="flex items-center justify-between text-xs text-slate-500 px-1">
-        <div className="flex items-center gap-2">
-          <span>
-            조회 결과: <strong className="text-slate-900 font-semibold">{sortedData.length}</strong>명 / 전체 {initialData.length}명
-          </span>
-          {selectedCmit !== "ALL" && (
-            <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-medium">
-              [{selectedCmit}] 소속
-            </span>
-          )}
+        <div>
+          조회 결과: <strong className="text-slate-900 font-semibold">{sortedData.length}</strong>명 / 전체 {initialData.length}명
         </div>
         <span className="text-slate-400 text-[11px]">
-          * 의원 행을 클릭하면 상세 Drawer 및 육각형 스탯 차트가 열립니다.
+          * 의원 카드를 터치하면 상세 성적표가 열립니다.
         </span>
       </div>
 
-      {/* 3. 랭킹 테이블 */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      {/* 2. [모바일 화면] 전용 카드 뷰 (md 미만 노출) */}
+      <div className="block md:hidden space-y-3">
+        {sortedData.length > 0 ? (
+          sortedData.map((row) => {
+            const tag = getLegislativeTag(row);
+            const isDeferred = row.is_deferred === 1;
+            const isSelectedForCompare = compareList.some((m) => m.assemb_id === row.assemb_id);
+            const pureCnt = Number(row.pure_aprv_cnt) || 0;
+            const altCnt = Number(row.alt_aprv_cnt) || 0;
+
+            return (
+              <div
+                key={row.assemb_id}
+                onClick={() => handleSelectAssemb(row)}
+                className={`bg-white rounded-xl border p-4 shadow-sm transition-all active:scale-[0.99] cursor-pointer ${
+                  isSelectedForCompare
+                    ? "border-indigo-500 ring-2 ring-indigo-500/20 bg-indigo-50/20"
+                    : "border-slate-200 hover:border-slate-300"
+                }`}
+              >
+                {/* 카드 상단: 순위, 이름, 정당, 맞비교(VS) 버튼 */}
+                <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-100">
+                  <div className="flex items-center gap-2">
+                    {/* 순위 배지 */}
+                    {isDeferred ? (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500">
+                        유예
+                      </span>
+                    ) : row.rnkg && row.rnkg <= 3 ? (
+                      <span className="w-5 h-5 flex items-center justify-center bg-indigo-600 text-white rounded-full font-black text-xs">
+                        {row.rnkg}
+                      </span>
+                    ) : (
+                      <span className="text-xs font-bold font-mono text-slate-500 min-w-[18px]">
+                        {row.rnkg ?? "-"}
+                      </span>
+                    )}
+
+                    <span className="font-bold text-slate-900 text-sm">{row.assemb_nm}</span>
+
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${
+                        PARTY_COLORS[row.pltprt_nm] || "bg-gray-50 text-gray-700 border-gray-200"
+                      }`}
+                    >
+                      {row.pltprt_nm}
+                    </span>
+
+                    {tag && (
+                      <span className={`px-1.5 py-0.2 rounded text-[9px] font-semibold border ${tag.style}`}>
+                        {tag.label}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    {/* 종합 점수 */}
+                    <div className="text-right font-mono">
+                      <span className="text-[10px] text-slate-400 block -mb-0.5">종합점수</span>
+                      <strong className="text-xs font-black text-indigo-700">
+                        {isDeferred || row.score === null ? "유예" : `${Number(row.score).toFixed(1)}점`}
+                      </strong>
+                    </div>
+
+                    {/* VS 버튼 */}
+                    <button
+                      onClick={(e) => toggleCompare(row, e)}
+                      title="1:1 맞비교 대상 추가"
+                      className={`w-7 h-7 rounded-lg text-xs font-black transition-all flex items-center justify-center ${
+                        isSelectedForCompare
+                          ? "bg-indigo-600 text-white shadow"
+                          : "bg-slate-100 text-slate-400"
+                      }`}
+                    >
+                      VS
+                    </button>
+                  </div>
+                </div>
+
+                {/* 소속 상임위 & 지역구 */}
+                <div className="flex items-center justify-between text-[11px] text-slate-400 mb-3">
+                  <span className="truncate max-w-[200px]">{row.cmit_nm || "상임위 미배정"}</span>
+                  <span>{row.rgn_nm || "비례대표"}</span>
+                </div>
+
+                {/* 카드 하단: 4분할 핵심 지표 그리드 */}
+                <div className="grid grid-cols-4 gap-1.5 text-center bg-slate-50 rounded-lg p-2 font-mono">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">대표발의</span>
+                    <strong className="text-xs font-bold text-slate-800">
+                      {Number(row.ttl_motn_cnt) || 0}건
+                    </strong>
+                    <span className="text-[9px] text-slate-400 block">
+                      월 {Number(row.monthly_pace || 0).toFixed(1)}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">상임위집중</span>
+                    <strong className="text-xs font-bold text-blue-700">
+                      {Number(row.own_cmit_motn_rate) || 0}%
+                    </strong>
+                    <span className="text-[9px] text-slate-400 block">
+                      {Number(row.own_cmit_motn_cnt) || 0}건
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">상정률</span>
+                    <strong className="text-xs font-bold text-slate-800">
+                      {Number(row.cmt_present_rate) || 0}%
+                    </strong>
+                    <span className="text-[9px] text-slate-400 block">
+                      {Number(row.avg_cmt_days) > 0 ? `${Number(row.avg_cmt_days)}일` : "-"}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">실질가결</span>
+                    <strong className="text-xs font-bold text-emerald-600">
+                      {Number(row.aprv_cnt) || 0}건
+                    </strong>
+                    <span className="text-[9px] text-slate-500 block font-sans">
+                      원{pureCnt} · 대{altCnt}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-xs text-slate-400">
+            조건에 일치하는 국회의원이 없습니다.
+          </div>
+        )}
+      </div>
+
+      {/* 3. [PC 화면] 전용 10컬럼 테이블 (md 이상 노출) */}
+      <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600">
             <thead className="bg-slate-100 text-slate-700 font-semibold text-xs tracking-wider border-b border-slate-200 select-none whitespace-nowrap">
@@ -444,7 +582,7 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
                 <th
                   onClick={() => handleSort("aprv_cnt")}
                   className="py-3 px-3 text-right cursor-pointer hover:bg-slate-200/70 transition-colors group w-28"
-                  title="본회의 가결(원안/수정가결) 및 위원회 대안반영폐기 실적"
+                  title="본회의 가결 및 대안반영 실적"
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>본회의 실질가결</span>
@@ -489,10 +627,7 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
 
                       <td className="py-3.5 px-2.5 text-center font-bold text-slate-900 whitespace-nowrap">
                         {isDeferred ? (
-                          <span
-                            title="등원 100일 미만으로 종합 평가가 유예되었습니다."
-                            className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-200 text-slate-600 cursor-help"
-                          >
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-200 text-slate-600">
                             유예
                           </span>
                         ) : row.rnkg && row.rnkg <= 3 ? (
@@ -508,11 +643,9 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
                         {isDeferred || row.score === null ? (
                           <span className="text-slate-400 text-xs font-mono">-</span>
                         ) : (
-                          <div className="inline-flex flex-col items-end">
-                            <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-indigo-50 text-indigo-700 border border-indigo-200 font-mono shadow-sm">
-                              {Number(row.score).toFixed(1)}점
-                            </span>
-                          </div>
+                          <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-indigo-50 text-indigo-700 border border-indigo-200 font-mono shadow-sm">
+                            {Number(row.score).toFixed(1)}점
+                          </span>
                         )}
                       </td>
 
@@ -523,22 +656,14 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
                               {row.assemb_nm}
                             </span>
                             {tag && (
-                              <span
-                                title={tag.tooltip}
-                                className={`inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-semibold border cursor-help whitespace-nowrap ${tag.style}`}
-                              >
+                              <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-semibold border ${tag.style}`}>
                                 {tag.label}
-                                {tag.isSpecial ? (
-                                  <Info className="w-2.5 h-2.5 text-slate-400" />
-                                ) : null}
+                                {tag.isSpecial && <Info className="w-2.5 h-2.5 text-slate-400" />}
                               </span>
                             )}
-                            <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-500 transition-all shrink-0 ml-1" />
                           </div>
-                          <span
-                            className="text-[11px] text-slate-400 block truncate max-w-[340px] mt-0.5 whitespace-nowrap"
-                            title={row.cmit_nm || ""}
-                          >
+                          <span className="text-[11px] text-slate-400 block truncate max-w-[340px] mt-0.5">
                             {row.cmit_nm || "상임위 미배정"}
                           </span>
                         </div>
@@ -546,7 +671,7 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
 
                       <td className="py-3.5 px-2 text-center whitespace-nowrap">
                         <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold border whitespace-nowrap ${
+                          className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
                             PARTY_COLORS[row.pltprt_nm] || "bg-gray-50 text-gray-700 border-gray-200"
                           }`}
                         >
@@ -554,28 +679,14 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
                         </span>
                       </td>
 
-                      <td className="py-3.5 px-3 text-slate-600 text-xs whitespace-nowrap truncate max-w-[144px]" title={row.rgn_nm || "비례대표"}>
+                      <td className="py-3.5 px-3 text-slate-600 text-xs whitespace-nowrap truncate max-w-[144px]">
                         {row.rgn_nm || "비례대표"}
                       </td>
 
                       <td className="py-3.5 px-2.5 text-right font-mono whitespace-nowrap">
                         <div className="flex flex-col items-end">
-                          {motnCnt === 0 ? (
-                            <span
-                              title="국회의장단, 정당 지도부(당대표·원내대표), 장관 겸직 등의 사유"
-                              className="inline-flex items-center gap-0.5 text-slate-400 hover:text-slate-700 cursor-help"
-                            >
-                              0건
-                              <Info className="w-3 h-3 text-slate-400" />
-                            </span>
-                          ) : (
-                            <span className="text-slate-800 font-semibold">
-                              {motnCnt.toLocaleString()}건
-                            </span>
-                          )}
-                          <span className="text-[10px] text-slate-400">
-                            월 {monthlyPace}건
-                          </span>
+                          <span className="text-slate-800 font-semibold">{motnCnt.toLocaleString()}건</span>
+                          <span className="text-[10px] text-slate-400">월 {monthlyPace}건</span>
                         </div>
                       </td>
 
@@ -614,20 +725,13 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
 
                       <td className="py-3.5 px-3 text-right whitespace-nowrap">
                         <div className="flex flex-col items-end">
-                          <span
-                            className="font-bold text-emerald-600 font-mono"
-                            title={`원안·수정가결 ${pureCnt}건 + 위원회 대안반영 ${altCnt}건`}
-                          >
+                          <span className="font-bold text-emerald-600 font-mono">
                             {(Number(row.aprv_cnt) || 0).toLocaleString()}건
                           </span>
                           <div className="flex items-center gap-1 text-[10px] text-slate-500 font-mono">
-                            <span className="text-emerald-700 font-medium" title="순수 원안/수정가결">
-                              원{pureCnt}
-                            </span>
+                            <span className="text-emerald-700 font-medium">원{pureCnt}</span>
                             <span>·</span>
-                            <span className="text-sky-700 font-medium" title="위원회 대안반영폐기">
-                              대{altCnt}
-                            </span>
+                            <span className="text-sky-700 font-medium">대{altCnt}</span>
                             <span>({row.aprv_rate !== null ? `${Number(row.aprv_rate)}%` : "-"})</span>
                           </div>
                         </div>
@@ -647,53 +751,44 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
         </div>
       </div>
 
-      {/* 4. 하단 플로팅 맞비교 바 */}
+      {/* 4. 하단 모바일/PC 반응형 맞비교 독(Dock) */}
       {compareList.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-4 animate-in fade-in slide-in-from-bottom-3 duration-200">
+        <div className="fixed bottom-4 left-3 right-3 md:left-1/2 md:right-auto md:-translate-x-1/2 z-40 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center justify-between md:justify-start gap-3 animate-in fade-in slide-in-from-bottom-3 duration-200">
           <div className="flex items-center gap-2">
-            <Swords className="w-4 h-4 text-indigo-400 animate-pulse" />
-            <span className="text-xs font-bold text-slate-200">1:1 맞비교</span>
+            <Swords className="w-4 h-4 text-indigo-400 animate-pulse shrink-0" />
+            <span className="text-xs font-bold text-slate-200 hidden sm:inline">1:1 맞비교</span>
           </div>
 
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex items-center gap-1.5 text-xs truncate">
             {compareList.map((m) => (
               <span
                 key={m.assemb_id}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-800 rounded-lg border border-slate-700 font-semibold"
+                className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-800 rounded-lg border border-slate-700 font-semibold text-xs"
               >
                 {m.assemb_nm}
-                <button
-                  onClick={() => toggleCompare(m)}
-                  className="text-slate-400 hover:text-white"
-                >
+                <button onClick={() => toggleCompare(m)} className="text-slate-400 hover:text-white">
                   <X className="w-3 h-3" />
                 </button>
               </span>
             ))}
             {compareList.length === 1 && (
-              <span className="text-slate-400 text-[11px] animate-pulse">
-                비교할 의원 1명을 추가 선택하세요
-              </span>
+              <span className="text-slate-400 text-[10px] sm:text-xs">1명 더 선택</span>
             )}
           </div>
 
-          <div className="flex items-center gap-2 pl-2 border-l border-slate-700">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               disabled={compareList.length < 2}
               onClick={() => setIsCompareModalOpen(true)}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 compareList.length === 2
-                  ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg cursor-pointer scale-105"
+                  ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg cursor-pointer"
                   : "bg-slate-800 text-slate-500 cursor-not-allowed"
               }`}
             >
-              대결 분석 열기 ⚔️
+              대결 분석 ⚔️
             </button>
-            <button
-              onClick={() => setCompareList([])}
-              className="p-1 text-slate-400 hover:text-white text-xs"
-              title="비교 초기화"
-            >
+            <button onClick={() => setCompareList([])} className="p-1 text-slate-400 hover:text-white">
               <X className="w-4 h-4" />
             </button>
           </div>
