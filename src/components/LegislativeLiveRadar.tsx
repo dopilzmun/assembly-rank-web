@@ -90,7 +90,7 @@ export default function LegislativeLiveRadar({ data, onSelectAssemb }: Legislati
             </div>
           </div>
 
-          {/* 최근 최다 발의 의원 TOP 3 */}
+          {/* 최근 최다 발의 의원 TOP 3 (클릭 시 성적표 오픈 연동 완료) */}
           <div className="space-y-1.5 pt-1">
             <span className="text-xs font-semibold text-indigo-200 flex items-center justify-between whitespace-nowrap">
               <span>🔥 최근 최다 발의 의원 (Movers)</span>
@@ -109,7 +109,7 @@ export default function LegislativeLiveRadar({ data, onSelectAssemb }: Legislati
                       <span className="w-4 text-center font-bold font-mono text-amber-400 text-xs shrink-0">
                         {idx + 1}
                       </span>
-                      <span className="font-semibold text-white whitespace-nowrap shrink-0">
+                      <span className="font-semibold text-white whitespace-nowrap shrink-0 group-hover:text-amber-300 transition-colors">
                         {mover.assemb_nm}
                       </span>
                       <span className="text-[10px] text-slate-300 px-1.5 py-0.2 rounded bg-white/10 whitespace-nowrap shrink-0">
@@ -119,7 +119,7 @@ export default function LegislativeLiveRadar({ data, onSelectAssemb }: Legislati
                     <div className="flex items-center gap-1 font-mono text-xs shrink-0 whitespace-nowrap">
                       <strong className="text-indigo-300 font-bold">{mover.recent_cnt}</strong>
                       <span className="text-slate-400 text-[11px]">건</span>
-                      <ChevronRight className="w-3.5 h-3.5 text-indigo-400/60" />
+                      <ChevronRight className="w-3.5 h-3.5 text-indigo-400/60 group-hover:translate-x-0.5 transition-transform" />
                     </div>
                   </div>
                 ))
