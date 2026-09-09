@@ -10,7 +10,8 @@ import MacroStatsCards from "@/components/MacroStatsCards";
 import CommitteeBottleneckSection from "@/components/CommitteeBottleneckSection";
 import { Layers } from "lucide-react";
 
-export const revalidate = 3600;
+// ETL 웹훅(On-Demand) 기반으로 캐시를 갱신하며, 보조 안전망으로 24시간 캐시 유지
+export const revalidate = 86400;
 
 const CURRENT_AGE = 22;
 
