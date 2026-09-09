@@ -2,60 +2,15 @@ import { Metadata } from "next";
 import pool from "@/lib/db";
 import { RowDataPacket } from "mysql2";
 import { BillRankingRow } from "@/types/ranking";
-import { MacroOverviewStats, PartyOverviewStats } from "@/types/stats";
-import { WeeklyRadarStats, PipelineEvent, WeeklyActiveMover } from "@/types/activity";
-import { CommitteeBottleneckStats } from "@/types/committee";
 import RankingDashboard from "@/components/RankingDashboard";
-import MacroStatsCards from "@/components/MacroStatsCards";
-import CommitteeBottleneckSection from "@/components/CommitteeBottleneckSection";
-import { Layers } from "lucide-react";
+import { Trophy } from "lucide-react";
 
-// ETL 웹훅(On-Demand) 기반으로 캐시를 갱신하며, 보조 안전망으로 24시간 캐시 유지
 export const revalidate = 86400;
-
 const CURRENT_AGE = 22;
 
-const siteUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : "http://localhost:3000";
-
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: `국회의원 입법활동 지표 모니터 | 제${CURRENT_AGE}대 국회`,
-  description: `열린국회정보 Open API 기반 제${CURRENT_AGE}대 국회의원 법안 발의·상정·실질가결 지표 및 6대 역량 분석 모니터`,
-  keywords: [
-    "국회의원",
-    "입법활동",
-    "국회",
-    "법안",
-    "의안정보",
-    "의정평가",
-    "제22대 국회",
-    "가결률",
-    "국회의원 순위",
-  ],
-  openGraph: {
-    title: `국회의원 입법활동 지표 모니터 | 제${CURRENT_AGE}대 국회`,
-    description: `열린국회정보 Open API 기반 제${CURRENT_AGE}대 국회의원 법안 발의·상임위 상정·실질가결 6대 성과 지표 전수 분석`,
-    url: siteUrl,
-    siteName: "국회의원 입법활동 지표 모니터",
-    locale: "ko_KR",
-    type: "website",
-    images: [
-      {
-        url: "/opengraph-image",
-        width: 1200,
-        height: 630,
-        alt: "국회의원 입법활동 지표 모니터",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: `국회의원 입법활동 지표 모니터 | 제${CURRENT_AGE}대 국회`,
-    description: `열린국회정보 Open API 기반 제${CURRENT_AGE}대 국회의원 법안 발의·상임위 상정·실질가결 6대 성과 지표 전수 분석`,
-    images: ["/opengraph-image"],
-  },
+  title: `의원 랭킹 & 1:1 맞비교 | 국회의원 입법활동 모니터`,
+  description: `제${CURRENT_AGE}대 국회의원 300인 대표발의·상임위상정·본회의실질가결 성적표 및 6대 역량 1:1 스탯 배틀`,
 };
 
 async function getBillRankings(): Promise<BillRankingRow[]> {
@@ -100,270 +55,33 @@ async function getBillRankings(): Promise<BillRankingRow[]> {
   }
 }
 
-async function getMacroOverview(): Promise<MacroOverviewStats> {
-  try {
-    const query = `
-      SELECT 
-        COUNT(DISTINCT repve_assemb_id) AS total_assemb_cnt,
-        COUNT(*) AS total_motn_cnt,
-        COUNT(CASE WHEN process_stat LIKE '%가결%' OR process_stat LIKE '%반영폐기%' THEN 1 END) AS total_aprv_cnt,
-        COUNT(CASE WHEN cmt_present_dd IS NOT NULL THEN 1 END) AS total_cmt_present_cnt
-      FROM bill_tr
-      WHERE age = ?;
-    `;
-    const [rows] = await pool.query<RowDataPacket[]>(query, [CURRENT_AGE]);
-    const r = rows[0] || {};
-
-    const total_motn_cnt = Number(r.total_motn_cnt) || 0;
-    const total_aprv_cnt = Number(r.total_aprv_cnt) || 0;
-    const total_cmt_present_cnt = Number(r.total_cmt_present_cnt) || 0;
-
-    return {
-      total_assemb_cnt: Number(r.total_assemb_cnt) || 0,
-      total_motn_cnt,
-      total_aprv_cnt,
-      total_cmt_present_cnt,
-      overall_aprv_rate:
-        total_motn_cnt > 0
-          ? Math.round((total_aprv_cnt / total_motn_cnt) * 1000) / 10
-          : 0.0,
-      overall_cmt_present_rate:
-        total_motn_cnt > 0
-          ? Math.round((total_cmt_present_cnt / total_motn_cnt) * 1000) / 10
-          : 0.0,
-    };
-  } catch (error) {
-    console.error("Failed to fetch macro overview:", error);
-    return {
-      total_assemb_cnt: 0,
-      total_motn_cnt: 0,
-      total_aprv_cnt: 0,
-      total_cmt_present_cnt: 0,
-      overall_aprv_rate: 0.0,
-      overall_cmt_present_rate: 0.0,
-    };
-  }
-}
-
-async function getPartyStats(): Promise<PartyOverviewStats[]> {
-  try {
-    const query = `
-      SELECT 
-        m.pltprt_nm,
-        COUNT(DISTINCT m.assemb_id) AS assemb_cnt,
-        COUNT(b.bill_id) AS total_motn_cnt,
-        COUNT(CASE WHEN b.process_stat LIKE '%가결%' OR b.process_stat LIKE '%반영폐기%' THEN 1 END) AS aprv_cnt,
-        COUNT(CASE WHEN b.cmt_present_dd IS NOT NULL THEN 1 END) AS cmt_present_cnt,
-        CASE 
-          WHEN COUNT(b.bill_id) > 0 
-          THEN ROUND((COUNT(CASE WHEN b.process_stat LIKE '%가결%' OR b.process_stat LIKE '%반영폐기%' THEN 1 END) / COUNT(b.bill_id)) * 100, 1)
-          ELSE 0.0 
-        END AS aprv_rate,
-        CASE 
-          WHEN COUNT(b.bill_id) > 0 
-          THEN ROUND((COUNT(CASE WHEN b.cmt_present_dd IS NOT NULL THEN 1 END) / COUNT(b.bill_id)) * 100, 1)
-          ELSE 0.0 
-        END AS cmt_present_rate
-      FROM assemb_mastr m
-      LEFT JOIN bill_tr b ON m.assemb_id = b.repve_assemb_id AND m.age = b.age
-      WHERE m.age = ?
-      GROUP BY m.pltprt_nm
-      HAVING COUNT(DISTINCT m.assemb_id) > 0
-      ORDER BY total_motn_cnt DESC;
-    `;
-    const [rows] = await pool.query<RowDataPacket[]>(query, [CURRENT_AGE]);
-    return rows as PartyOverviewStats[];
-  } catch (error) {
-    console.error("Failed to fetch party stats:", error);
-    return [];
-  }
-}
-
-async function getCommitteeBottleneckData(): Promise<CommitteeBottleneckStats[]> {
-  try {
-    const query = `
-      SELECT 
-        curr_cmit_nm,
-        COUNT(*) AS total_bills,
-        COUNT(CASE WHEN cmt_present_dd IS NOT NULL THEN 1 END) AS present_cnt,
-        ROUND((COUNT(CASE WHEN cmt_present_dd IS NOT NULL THEN 1 END) / COUNT(*)) * 100, 1) AS present_rate,
-        ROUND(AVG(CASE WHEN cmt_present_dd IS NOT NULL THEN DATEDIFF(cmt_present_dd, motn_dd) END), 1) AS avg_days,
-        COUNT(CASE WHEN process_stat LIKE '%가결%' OR process_stat LIKE '%반영폐기%' THEN 1 END) AS aprv_cnt,
-        ROUND((COUNT(CASE WHEN process_stat LIKE '%가결%' OR process_stat LIKE '%반영폐기%' THEN 1 END) / COUNT(*)) * 100, 1) AS aprv_rate
-      FROM bill_tr
-      WHERE age = ? AND curr_cmit_nm IS NOT NULL AND curr_cmit_nm != ''
-      GROUP BY curr_cmit_nm
-      ORDER BY total_bills DESC;
-    `;
-    const [rows] = await pool.query<RowDataPacket[]>(query, [CURRENT_AGE]);
-    return (rows as RowDataPacket[]).map((r) => ({
-      curr_cmit_nm: r.curr_cmit_nm,
-      total_bills: Number(r.total_bills) || 0,
-      present_cnt: Number(r.present_cnt) || 0,
-      present_rate: Number(r.present_rate) || 0,
-      avg_days: r.avg_days !== null && r.avg_days !== undefined ? Number(r.avg_days) : null,
-      aprv_cnt: Number(r.aprv_cnt) || 0,
-      aprv_rate: Number(r.aprv_rate) || 0,
-    }));
-  } catch (error) {
-    console.error("Failed to fetch committee bottleneck data:", error);
-    return [];
-  }
-}
-
-async function getWeeklyRadarData(): Promise<WeeklyRadarStats> {
-  try {
-    const [anchorRows] = await pool.query<RowDataPacket[]>(
-      `SELECT DATE_FORMAT(COALESCE(MAX(motn_dd), CURRENT_DATE), '%Y-%m-%d') as anchor_date FROM bill_tr WHERE age = ?;`,
-      [CURRENT_AGE]
-    );
-    const anchorDate = anchorRows[0]?.anchor_date || "2024-05-30";
-
-    const [summaryRows] = await pool.query<RowDataPacket[]>(
-      `SELECT 
-        COUNT(CASE WHEN motn_dd >= DATE_SUB(?, INTERVAL 14 DAY) THEN 1 END) AS recent_motn_total,
-        COUNT(CASE WHEN cmt_present_dd >= DATE_SUB(?, INTERVAL 14 DAY) THEN 1 END) AS recent_present_total,
-        COUNT(CASE WHEN process_dd >= DATE_SUB(?, INTERVAL 14 DAY) AND (process_stat LIKE '%가결%' OR process_stat LIKE '%반영폐기%') THEN 1 END) AS recent_aprv_total
-      FROM bill_tr
-      WHERE age = ?;`,
-      [anchorDate, anchorDate, anchorDate, CURRENT_AGE]
-    );
-    const s = summaryRows[0] || {};
-
-    const [moverRows] = await pool.query<RowDataPacket[]>(
-      `SELECT 
-        m.assemb_id,
-        m.assemb_nm,
-        m.pltprt_nm,
-        COUNT(*) AS recent_cnt
-      FROM bill_tr b
-      JOIN assemb_mastr m ON b.repve_assemb_id = m.assemb_id AND b.age = m.age
-      WHERE b.age = ? AND b.motn_dd >= DATE_SUB(?, INTERVAL 14 DAY)
-      GROUP BY m.assemb_id, m.assemb_nm, m.pltprt_nm
-      ORDER BY recent_cnt DESC
-      LIMIT 3;`,
-      [CURRENT_AGE, anchorDate]
-    );
-
-    const [eventRows] = await pool.query<RowDataPacket[]>(
-      `SELECT 
-        b.bill_id,
-        b.bill_nm,
-        m.assemb_id,
-        m.assemb_nm,
-        m.pltprt_nm,
-        b.curr_cmit_nm,
-        DATE_FORMAT(b.motn_dd, '%Y-%m-%d') AS motn_dd,
-        DATE_FORMAT(b.cmt_present_dd, '%Y-%m-%d') AS cmt_present_dd,
-        b.process_stat,
-        DATE_FORMAT(b.process_dd, '%Y-%m-%d') AS process_dd
-      FROM bill_tr b
-      JOIN assemb_mastr m ON b.repve_assemb_id = m.assemb_id AND b.age = m.age
-      WHERE b.age = ?
-      ORDER BY GREATEST(
-        COALESCE(b.process_dd, '1900-01-01'),
-        COALESCE(b.cmt_present_dd, '1900-01-01'),
-        COALESCE(b.motn_dd, '1900-01-01')
-      ) DESC
-      LIMIT 15;`,
-      [CURRENT_AGE]
-    );
-
-    const recent_events: PipelineEvent[] = eventRows.map((r) => {
-      const isSubstAprv =
-        r.process_dd &&
-        (r.process_stat?.includes("가결") || r.process_stat?.includes("반영폐기"));
-
-      if (isSubstAprv) {
-        return {
-          bill_id: r.bill_id,
-          bill_nm: r.bill_nm,
-          assemb_id: r.assemb_id,
-          assemb_nm: r.assemb_nm,
-          pltprt_nm: r.pltprt_nm,
-          action_type: "가결",
-          event_date: r.process_dd,
-          detail_text: r.process_stat?.includes("반영폐기") ? "대안반영(실질가결)" : r.process_stat,
-        };
-      }
-      if (r.cmt_present_dd) {
-        return {
-          bill_id: r.bill_id,
-          bill_nm: r.bill_nm,
-          assemb_id: r.assemb_id,
-          assemb_nm: r.assemb_nm,
-          pltprt_nm: r.pltprt_nm,
-          action_type: "상정",
-          event_date: r.cmt_present_dd,
-          detail_text: `${r.curr_cmit_nm || "소관위"} 심사 상정`,
-        };
-      }
-      return {
-        bill_id: r.bill_id,
-        bill_nm: r.bill_nm,
-        assemb_id: r.assemb_id,
-        assemb_nm: r.assemb_nm,
-        pltprt_nm: r.pltprt_nm,
-        action_type: "발의",
-        event_date: r.motn_dd || "최근",
-        detail_text: `${r.curr_cmit_nm || "상임위"} 회부`,
-      };
-    });
-
-    return {
-      period_label: "최근 14일 기준",
-      recent_motn_total: Number(s.recent_motn_total) || 0,
-      recent_present_total: Number(s.recent_present_total) || 0,
-      recent_aprv_total: Number(s.recent_aprv_total) || 0,
-      top_movers: moverRows as WeeklyActiveMover[],
-      recent_events,
-    };
-  } catch (error) {
-    console.error("Failed to fetch weekly radar data:", error);
-    return {
-      period_label: "최근 14일 기준",
-      recent_motn_total: 0,
-      recent_present_total: 0,
-      recent_aprv_total: 0,
-      top_movers: [],
-      recent_events: [],
-    };
-  }
-}
-
 export default async function HomePage() {
-  const [rankings, macroOverview, partyStats, committeeStats, weeklyRadar] =
-    await Promise.all([
-      getBillRankings(),
-      getMacroOverview(),
-      getPartyStats(),
-      getCommitteeBottleneckData(),
-      getWeeklyRadarData(),
-    ]);
+  const rankings = await getBillRankings();
 
   return (
-    <main className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div>
-          <div className="flex flex-wrap items-center gap-3 mb-2">
-            <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-sm">
-              <Layers className="w-6 h-6" />
+    <main className="py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto space-y-5">
+        
+        {/* 페이지 슬림 헤더 */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-sm shrink-0">
+              <Trophy className="w-5 h-5" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              국회의원 입법활동 지표 모니터
-            </h1>
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm">
-              제{CURRENT_AGE}대 국회
-            </span>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+                제{CURRENT_AGE}대 국회의원 입법활동 종합 랭킹
+              </h1>
+              <p className="text-slate-500 text-xs mt-0.5">
+                대표발의 건수 · 상임위 심사 상정률 · 본회의 실질가결 성과 6대 지표 전수 분석
+              </p>
+            </div>
           </div>
-          <p className="text-slate-500 text-sm pl-0.5">
-            열린국회정보 Open API 기반 대표발의 법안 심사 추진 및 본회의 처리 현황 분석
-          </p>
         </div>
 
-        <MacroStatsCards overview={macroOverview} parties={partyStats} />
-        <CommitteeBottleneckSection data={committeeStats} />
-        <RankingDashboard initialData={rankings} weeklyRadar={weeklyRadar} />
+        {/* 랭킹 대시보드 (검색창과 300인 카드가 화면 상단에 즉시 표출) */}
+        <RankingDashboard initialData={rankings} />
+
       </div>
     </main>
   );

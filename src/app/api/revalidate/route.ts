@@ -13,7 +13,6 @@ async function handleRevalidate(request: NextRequest) {
   const secret = request.nextUrl.searchParams.get("secret");
   const expectedSecret = process.env.REVALIDATE_SECRET;
 
-  // 1. 보안 토큰 검증
   if (!expectedSecret || secret !== expectedSecret) {
     return NextResponse.json(
       { message: "인증 실패: 유효하지 않은 비밀 키입니다." },
@@ -22,14 +21,16 @@ async function handleRevalidate(request: NextRequest) {
   }
 
   try {
-    // 2. 메인 페이지 캐시 즉시 파기 및 백그라운드 재생성
+    // 3개 메인 라우트 캐시 동시 파기 및 재생성
     revalidatePath("/", "page");
+    revalidatePath("/live", "page");
+    revalidatePath("/committees", "page");
 
     return NextResponse.json({
       revalidated: true,
-      path: "/",
+      paths: ["/", "/live", "/committees"],
       now: new Date().toISOString(),
-      message: "메인 대시보드 캐시가 성공적으로 갱신되었습니다.",
+      message: "모든 페이지 캐시가 성공적으로 갱신되었습니다.",
     });
   } catch (error) {
     console.error("캐시 재검증 실패:", error);
