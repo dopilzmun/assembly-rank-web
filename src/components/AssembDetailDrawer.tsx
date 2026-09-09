@@ -117,7 +117,6 @@ export default function AssembDetailDrawer({
         onClick={onClose}
       />
 
-      {/* 모바일에서는 패딩 없이 전체 화면, PC에서는 우측 max-w-xl 고정 */}
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 md:pl-10">
         <div className="w-screen max-w-full md:max-w-xl bg-white shadow-2xl flex flex-col h-full">
           
@@ -125,12 +124,12 @@ export default function AssembDetailDrawer({
           <div className="p-4 sm:p-6 border-b border-slate-200 bg-slate-50/50 space-y-3 sm:space-y-4 shrink-0 overflow-y-auto max-h-[45vh] md:max-h-none">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 truncate">
-                <span className="text-lg sm:text-xl font-bold text-slate-900">{assemb.assemb_nm}</span>
-                <span className="text-xs sm:text-sm text-slate-500 font-medium">의원</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-white border border-slate-200 text-slate-700 shadow-sm">
+                <span className="text-lg sm:text-xl font-bold text-slate-900 whitespace-nowrap">{assemb.assemb_nm}</span>
+                <span className="text-xs sm:text-sm text-slate-500 font-medium shrink-0">의원</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-white border border-slate-200 text-slate-700 shadow-sm shrink-0 whitespace-nowrap">
                   {assemb.pltprt_nm}
                 </span>
-                <span className="text-[11px] text-slate-400 hidden sm:inline">{assemb.rgn_nm || "비례대표"}</span>
+                <span className="text-[11px] text-slate-400 hidden sm:inline truncate">{assemb.rgn_nm || "비례대표"}</span>
               </div>
               
               <div className="flex items-center gap-1.5 shrink-0">
@@ -162,14 +161,14 @@ export default function AssembDetailDrawer({
 
             {/* 의원 소속 상임위 & 등원일 */}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 truncate">
                 <Layers className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                <span>상임위:</span>
+                <span className="shrink-0">상임위:</span>
                 <strong className="text-slate-800 font-medium truncate max-w-[200px]">
                   {assemb.cmit_nm || "미배정"}
                 </strong>
               </div>
-              <div className="text-slate-400 font-mono text-[11px]">등원일: {assemb.term_start_dd}</div>
+              <div className="text-slate-400 font-mono text-[11px] shrink-0">등원일: {assemb.term_start_dd}</div>
             </div>
 
             {/* 유예 및 직무 특수 배너 */}
@@ -188,36 +187,36 @@ export default function AssembDetailDrawer({
                   <Info className="w-4 h-4 text-amber-600 shrink-0" /> 직무 특수 대상
                 </div>
                 <p className="text-amber-800 text-[11px]">
-                  의장단, 원내대표단, 장관 겸직 등의 사유로 개별 발의가 발생하지 않았습니다.
+                  의장단, 정당 지도부, 장관 겸직 등의 사유로 개별 발의가 발생하지 않았습니다.
                 </p>
               </div>
             ) : null}
 
-            {/* 핵심 지표 5분할 칩 (모바일 글자 크기 최적화) */}
+            {/* 핵심 지표 5분할 칩 (완전한 1줄 유지) */}
             <div className="grid grid-cols-5 gap-1 text-center text-xs">
-              <div className="bg-indigo-50/80 p-1.5 sm:p-2 rounded-lg border border-indigo-100 flex flex-col justify-center">
-                <span className="text-indigo-600 block text-[9px] sm:text-[10px] mb-0.5 font-semibold">종합점수</span>
-                <strong className="text-indigo-700 text-[11px] sm:text-xs font-black font-mono">
+              <div className="bg-indigo-50/80 p-1.5 rounded-lg border border-indigo-100 flex flex-col justify-center overflow-hidden">
+                <span className="text-indigo-600 block text-[9px] sm:text-[10px] mb-0.5 font-semibold whitespace-nowrap truncate">종합점수</span>
+                <strong className="text-indigo-700 text-[11px] sm:text-xs font-black font-mono whitespace-nowrap">
                   {isDeferred || assemb.score === null ? "유예" : `${Number(assemb.score).toFixed(1)}`}
                 </strong>
               </div>
-              <div className="bg-white p-1.5 sm:p-2 rounded-lg border border-slate-200 shadow-sm">
-                <span className="text-slate-400 block text-[9px] sm:text-[10px] mb-0.5">대표발의</span>
-                <strong className="text-slate-800 text-[11px] sm:text-xs font-mono">{totalMotnCnt}건</strong>
-                <span className="text-[8px] sm:text-[9px] text-slate-400 block font-mono">월 {monthlyPace}</span>
+              <div className="bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                <span className="text-slate-400 block text-[9px] sm:text-[10px] mb-0.5 whitespace-nowrap truncate">발의</span>
+                <strong className="text-slate-800 text-[11px] sm:text-xs font-mono whitespace-nowrap">{totalMotnCnt}건</strong>
+                <span className="text-[8px] sm:text-[9px] text-slate-400 block font-mono whitespace-nowrap">월 {monthlyPace}</span>
               </div>
-              <div className="bg-white p-1.5 sm:p-2 rounded-lg border border-slate-200 shadow-sm">
-                <span className="text-slate-400 block text-[9px] sm:text-[10px] mb-0.5">상임위집중</span>
-                <strong className="text-blue-600 text-[11px] sm:text-xs font-mono">{Number(assemb.own_cmit_motn_rate) || 0}%</strong>
+              <div className="bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                <span className="text-slate-400 block text-[9px] sm:text-[10px] mb-0.5 whitespace-nowrap truncate">상임위</span>
+                <strong className="text-blue-600 text-[11px] sm:text-xs font-mono whitespace-nowrap">{Number(assemb.own_cmit_motn_rate) || 0}%</strong>
               </div>
-              <div className="bg-white p-1.5 sm:p-2 rounded-lg border border-slate-200 shadow-sm">
-                <span className="text-slate-400 block text-[9px] sm:text-[10px] mb-0.5">상정률</span>
-                <strong className="text-slate-700 text-[11px] sm:text-xs font-mono">{Number(assemb.cmt_present_rate) || 0}%</strong>
+              <div className="bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                <span className="text-slate-400 block text-[9px] sm:text-[10px] mb-0.5 whitespace-nowrap truncate">상정률</span>
+                <strong className="text-slate-700 text-[11px] sm:text-xs font-mono whitespace-nowrap">{Number(assemb.cmt_present_rate) || 0}%</strong>
               </div>
-              <div className="bg-white p-1.5 sm:p-2 rounded-lg border border-slate-200 shadow-sm">
-                <span className="text-slate-400 block text-[9px] sm:text-[10px] mb-0.5">실질가결</span>
-                <strong className="text-emerald-600 text-[11px] sm:text-xs font-mono">{Number(assemb.aprv_cnt) || 0}건</strong>
-                <span className="text-[8px] sm:text-[9px] text-slate-400 block font-mono">
+              <div className="bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                <span className="text-slate-400 block text-[9px] sm:text-[10px] mb-0.5 whitespace-nowrap truncate">실질가결</span>
+                <strong className="text-emerald-600 text-[11px] sm:text-xs font-mono whitespace-nowrap">{Number(assemb.aprv_cnt) || 0}건</strong>
+                <span className="text-[8px] sm:text-[9px] text-slate-400 block font-mono whitespace-nowrap">
                   원{pureAprvCnt}·대{altAprvCnt}
                 </span>
               </div>
@@ -240,7 +239,7 @@ export default function AssembDetailDrawer({
             </div>
           </div>
 
-          {/* 2. 탭 내비게이션 (가로 스크롤 허용) */}
+          {/* 2. 탭 내비게이션 */}
           <div className="flex border-b border-slate-200 px-4 sm:px-6 bg-white shrink-0 overflow-x-auto">
             <button
               onClick={() => setActiveTab("aprv")}
@@ -286,19 +285,19 @@ export default function AssembDetailDrawer({
                   className="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-sm space-y-2"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 truncate">
                       {bill.curr_cmit_nm ? (
                         bill.is_own_cmit ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">
                             <Bookmark className="w-2.5 h-2.5" /> 소속위 ({bill.curr_cmit_nm})
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">
                             타상임위 ({bill.curr_cmit_nm})
                           </span>
                         )
                       ) : (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-50 text-slate-400 border border-slate-200">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-50 text-slate-400 border border-slate-200 whitespace-nowrap">
                           미배정
                         </span>
                       )}
@@ -319,17 +318,17 @@ export default function AssembDetailDrawer({
                   </h4>
 
                   <div className="flex flex-wrap items-center gap-1.5 text-[11px] pt-1 border-t border-slate-100 text-slate-500">
-                    <span className="font-mono text-slate-400">발의: {bill.motn_dd}</span>
+                    <span className="font-mono text-slate-400 whitespace-nowrap">발의: {bill.motn_dd}</span>
 
                     {activeTab === "aprv" ? (
-                      <div className="flex items-center gap-1 font-mono">
+                      <div className="flex items-center gap-1 font-mono whitespace-nowrap">
                         {bill.process_stat?.includes("반영폐기") ? (
-                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-semibold bg-sky-50 text-sky-700 border border-sky-200">
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-semibold bg-sky-50 text-sky-700 border border-sky-200 whitespace-nowrap">
                             <Sparkles className="w-2.5 h-2.5 text-sky-500" />
-                            대안반영(실질가결)
+                            대안반영
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
                             {bill.process_stat}
                           </span>
                         )}
@@ -338,11 +337,11 @@ export default function AssembDetailDrawer({
                     ) : (
                       <>
                         {bill.cmt_present_dd ? (
-                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 whitespace-nowrap">
                             상정 ({bill.cmt_present_dd})
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
                             <AlertCircle className="w-2.5 h-2.5" />
                             미상정 대기
                           </span>
