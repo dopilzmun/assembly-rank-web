@@ -3,16 +3,16 @@ import pool from "@/lib/db";
 import { RowDataPacket } from "mysql2";
 import { BillRankingRow } from "@/types/ranking";
 import { MacroOverviewStats, PartyOverviewStats } from "@/types/stats";
+import { WeeklyRadarStats, PipelineEvent, WeeklyActiveMover } from "@/types/activity";
 import RankingDashboard from "@/components/RankingDashboard";
 import MacroStatsCards from "@/components/MacroStatsCards";
+import LegislativeLiveRadar from "@/components/LegislativeLiveRadar";
 import { Layers } from "lucide-react";
 
 export const revalidate = 3600;
 
-// 현재 표시할 국회 대수 (차기 국회 개원 시 파라미터 또는 환경변수 확장 용이)
 const CURRENT_AGE = 22;
 
-// 브라우저 탭 및 검색엔진(SEO) 메타데이터 설정
 export const metadata: Metadata = {
   title: `국회의원 입법활동 지표 모니터 | 제${CURRENT_AGE}대 국회`,
   description: `열린국회정보 Open API 기반 제${CURRENT_AGE}대 국회의원 법안 발의·상정·가결 지표 분석 모니터`,
@@ -105,7 +105,7 @@ async function getMacroOverview(): Promise<MacroOverviewStats> {
   }
 }
 
-// 3. 정당별 지표 비교 집계
+// 3. 정당별 지표 집계
 async function getPartyStats(): Promise<PartyOverviewStats[]> {
   try {
     const query = `
@@ -140,11 +140,133 @@ async function getPartyStats(): Promise<PartyOverviewStats[]> {
   }
 }
 
+// 4. (신규) 금주의 입법 레이더 & 실시간 피드 집계
+async function getWeeklyRadarData(): Promise<WeeklyRadarStats> {
+  try {
+    // A. 최신 법안 기준일자 파악 (휴회기/데이터 간극 방지 앵커)
+    const [anchorRows] = await pool.query<RowDataPacket[]>(
+      `SELECT DATE_FORMAT(COALESCE(MAX(motn_dd), CURRENT_DATE), '%Y-%m-%d') as anchor_date FROM bill_tr WHERE age = ?;`,
+      [CURRENT_AGE]
+    );
+    const anchorDate = anchorRows[0]?.anchor_date || "2024-05-30";
+
+    // B. 최근 14일 요약 수치
+    const [summaryRows] = await pool.query<RowDataPacket[]>(
+      `SELECT 
+        COUNT(CASE WHEN motn_dd >= DATE_SUB(?, INTERVAL 14 DAY) THEN 1 END) AS recent_motn_total,
+        COUNT(CASE WHEN cmt_present_dd >= DATE_SUB(?, INTERVAL 14 DAY) THEN 1 END) AS recent_present_total,
+        COUNT(CASE WHEN process_dd >= DATE_SUB(?, INTERVAL 14 DAY) AND process_stat LIKE '%가결%' THEN 1 END) AS recent_aprv_total
+      FROM bill_tr
+      WHERE age = ?;`,
+      [anchorDate, anchorDate, anchorDate, CURRENT_AGE]
+    );
+    const s = summaryRows[0] || {};
+
+    // C. 최근 14일 최다 발의 의원 TOP 3 (Movers)
+    const [moverRows] = await pool.query<RowDataPacket[]>(
+      `SELECT 
+        m.assemb_id,
+        m.assemb_nm,
+        m.pltprt_nm,
+        COUNT(*) AS recent_cnt
+      FROM bill_tr b
+      JOIN assemb_mastr m ON b.repve_assemb_id = m.assemb_id AND b.age = m.age
+      WHERE b.age = ? AND b.motn_dd >= DATE_SUB(?, INTERVAL 14 DAY)
+      GROUP BY m.assemb_id, m.assemb_nm, m.pltprt_nm
+      ORDER BY recent_cnt DESC
+      LIMIT 3;`,
+      [CURRENT_AGE, anchorDate]
+    );
+
+    // D. 실시간 파이프라인 이벤트 최신 15건 추출
+    const [eventRows] = await pool.query<RowDataPacket[]>(
+      `SELECT 
+        b.bill_id,
+        b.bill_nm,
+        m.assemb_id,
+        m.assemb_nm,
+        m.pltprt_nm,
+        b.curr_cmit_nm,
+        DATE_FORMAT(b.motn_dd, '%Y-%m-%d') AS motn_dd,
+        DATE_FORMAT(b.cmt_present_dd, '%Y-%m-%d') AS cmt_present_dd,
+        b.process_stat,
+        DATE_FORMAT(b.process_dd, '%Y-%m-%d') AS process_dd
+      FROM bill_tr b
+      JOIN assemb_mastr m ON b.repve_assemb_id = m.assemb_id AND b.age = m.age
+      WHERE b.age = ?
+      ORDER BY GREATEST(
+        COALESCE(b.process_dd, '1900-01-01'),
+        COALESCE(b.cmt_present_dd, '1900-01-01'),
+        COALESCE(b.motn_dd, '1900-01-01')
+      ) DESC
+      LIMIT 15;`,
+      [CURRENT_AGE]
+    );
+
+    const recent_events: PipelineEvent[] = eventRows.map((r) => {
+      if (r.process_dd && r.process_stat?.includes("가결")) {
+        return {
+          bill_id: r.bill_id,
+          bill_nm: r.bill_nm,
+          assemb_id: r.assemb_id,
+          assemb_nm: r.assemb_nm,
+          pltprt_nm: r.pltprt_nm,
+          action_type: "가결",
+          event_date: r.process_dd,
+          detail_text: r.process_stat,
+        };
+      }
+      if (r.cmt_present_dd) {
+        return {
+          bill_id: r.bill_id,
+          bill_nm: r.bill_nm,
+          assemb_id: r.assemb_id,
+          assemb_nm: r.assemb_nm,
+          pltprt_nm: r.pltprt_nm,
+          action_type: "상정",
+          event_date: r.cmt_present_dd,
+          detail_text: `${r.curr_cmit_nm || "소관위"} 심사 상정`,
+        };
+      }
+      return {
+        bill_id: r.bill_id,
+        bill_nm: r.bill_nm,
+        assemb_id: r.assemb_id,
+        assemb_nm: r.assemb_nm,
+        pltprt_nm: r.pltprt_nm,
+        action_type: "발의",
+        event_date: r.motn_dd || "최근",
+        detail_text: `${r.curr_cmit_nm || "상임위"} 회부`,
+      };
+    });
+
+    return {
+      period_label: "최근 14일 기준",
+      recent_motn_total: Number(s.recent_motn_total) || 0,
+      recent_present_total: Number(s.recent_present_total) || 0,
+      recent_aprv_total: Number(s.recent_aprv_total) || 0,
+      top_movers: moverRows as WeeklyActiveMover[],
+      recent_events,
+    };
+  } catch (error) {
+    console.error("Failed to fetch weekly radar data:", error);
+    return {
+      period_label: "최근 14일 기준",
+      recent_motn_total: 0,
+      recent_present_total: 0,
+      recent_aprv_total: 0,
+      top_movers: [],
+      recent_events: [],
+    };
+  }
+}
+
 export default async function HomePage() {
-  const [rankings, macroOverview, partyStats] = await Promise.all([
+  const [rankings, macroOverview, partyStats, weeklyRadar] = await Promise.all([
     getBillRankings(),
     getMacroOverview(),
     getPartyStats(),
+    getWeeklyRadarData(),
   ]);
 
   return (
@@ -159,7 +281,6 @@ export default async function HomePage() {
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
               국회의원 입법활동 지표 모니터
             </h1>
-            {/* 대수 셀렉터 확장용 뱃지 */}
             <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm">
               제{CURRENT_AGE}대 국회
             </span>
@@ -172,7 +293,10 @@ export default async function HomePage() {
         {/* 1. 최상단 거시 요약 통계 카드 & 정당별 파이프라인 차트 */}
         <MacroStatsCards overview={macroOverview} parties={partyStats} />
 
-        {/* 2. 필터 및 입법 지표 랭킹 테이블 */}
+        {/* 2. (신규) 금주의 입법 레이더 & 실시간 파이프라인 피드 */}
+        <LegislativeLiveRadar data={weeklyRadar} />
+
+        {/* 3. 필터 및 입법 지표 랭킹 테이블 */}
         <RankingDashboard initialData={rankings} />
       </div>
     </main>
