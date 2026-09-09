@@ -14,7 +14,6 @@ export const revalidate = 3600;
 
 const CURRENT_AGE = 22;
 
-// 배포 환경 및 로컬 환경 도메인 자동 감지
 const siteUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
   : "http://localhost:3000";
@@ -41,11 +40,20 @@ export const metadata: Metadata = {
     siteName: "국회의원 입법활동 지표 모니터",
     locale: "ko_KR",
     type: "website",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "국회의원 입법활동 지표 모니터",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: `국회의원 입법활동 지표 모니터 | 제${CURRENT_AGE}대 국회`,
     description: `열린국회정보 Open API 기반 제${CURRENT_AGE}대 국회의원 법안 발의·상임위 상정·실질가결 6대 성과 지표 전수 분석`,
+    images: ["/opengraph-image"],
   },
 };
 
@@ -352,13 +360,8 @@ export default async function HomePage() {
           </p>
         </div>
 
-        {/* 1. 거시 요약 통계 카드 & 정당별 파이프라인 차트 */}
         <MacroStatsCards overview={macroOverview} parties={partyStats} />
-
-        {/* 2. 상임위원회별 입법 병목 분석 섹션 */}
         <CommitteeBottleneckSection data={committeeStats} />
-
-        {/* 3. 주간 레이더 및 의원별 랭킹 대시보드 */}
         <RankingDashboard initialData={rankings} weeklyRadar={weeklyRadar} />
       </div>
     </main>
