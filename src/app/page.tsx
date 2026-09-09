@@ -17,6 +17,7 @@ export const metadata: Metadata = {
   description: `열린국회정보 Open API 기반 제${CURRENT_AGE}대 국회의원 법안 발의·상정·가결 지표 분석 모니터`,
 };
 
+// 1. 의원별 지표 뷰 조회 (신규 가결 컬럼 2개 포함)
 async function getBillRankings(): Promise<BillRankingRow[]> {
   try {
     const [rows] = await pool.query<RowDataPacket[]>(
@@ -31,6 +32,8 @@ async function getBillRankings(): Promise<BillRankingRow[]> {
         is_deferred,
         monthly_pace,
         ttl_motn_cnt,
+        pure_aprv_cnt,
+        alt_aprv_cnt,
         aprv_cnt,
         dss_cnt,
         aprv_rate,
@@ -57,13 +60,14 @@ async function getBillRankings(): Promise<BillRankingRow[]> {
   }
 }
 
+// 2. 국회 총괄 거시 지표 집계
 async function getMacroOverview(): Promise<MacroOverviewStats> {
   try {
     const query = `
       SELECT 
         COUNT(DISTINCT repve_assemb_id) AS total_assemb_cnt,
         COUNT(*) AS total_motn_cnt,
-        COUNT(CASE WHEN process_stat LIKE '%가결%' THEN 1 END) AS total_aprv_cnt,
+        COUNT(CASE WHEN process_stat LIKE '%가결%' OR process_stat LIKE '%반영폐기%' THEN 1 END) AS total_aprv_cnt,
         COUNT(CASE WHEN cmt_present_dd IS NOT NULL THEN 1 END) AS total_cmt_present_cnt
       FROM bill_tr
       WHERE age = ?;
@@ -102,6 +106,7 @@ async function getMacroOverview(): Promise<MacroOverviewStats> {
   }
 }
 
+// 3. 정당별 지표 집계
 async function getPartyStats(): Promise<PartyOverviewStats[]> {
   try {
     const query = `
@@ -109,11 +114,11 @@ async function getPartyStats(): Promise<PartyOverviewStats[]> {
         m.pltprt_nm,
         COUNT(DISTINCT m.assemb_id) AS assemb_cnt,
         COUNT(b.bill_id) AS total_motn_cnt,
-        COUNT(CASE WHEN b.process_stat LIKE '%가결%' THEN 1 END) AS aprv_cnt,
+        COUNT(CASE WHEN b.process_stat LIKE '%가결%' OR b.process_stat LIKE '%반영폐기%' THEN 1 END) AS aprv_cnt,
         COUNT(CASE WHEN b.cmt_present_dd IS NOT NULL THEN 1 END) AS cmt_present_cnt,
         CASE 
           WHEN COUNT(b.bill_id) > 0 
-          THEN ROUND((COUNT(CASE WHEN b.process_stat LIKE '%가결%' THEN 1 END) / COUNT(b.bill_id)) * 100, 1)
+          THEN ROUND((COUNT(CASE WHEN b.process_stat LIKE '%가결%' OR b.process_stat LIKE '%반영폐기%' THEN 1 END) / COUNT(b.bill_id)) * 100, 1)
           ELSE 0.0 
         END AS aprv_rate,
         CASE 
@@ -136,6 +141,7 @@ async function getPartyStats(): Promise<PartyOverviewStats[]> {
   }
 }
 
+// 4. 금주의 입법 레이더 & 실시간 피드 집계
 async function getWeeklyRadarData(): Promise<WeeklyRadarStats> {
   try {
     const [anchorRows] = await pool.query<RowDataPacket[]>(
@@ -148,7 +154,7 @@ async function getWeeklyRadarData(): Promise<WeeklyRadarStats> {
       `SELECT 
         COUNT(CASE WHEN motn_dd >= DATE_SUB(?, INTERVAL 14 DAY) THEN 1 END) AS recent_motn_total,
         COUNT(CASE WHEN cmt_present_dd >= DATE_SUB(?, INTERVAL 14 DAY) THEN 1 END) AS recent_present_total,
-        COUNT(CASE WHEN process_dd >= DATE_SUB(?, INTERVAL 14 DAY) AND process_stat LIKE '%가결%' THEN 1 END) AS recent_aprv_total
+        COUNT(CASE WHEN process_dd >= DATE_SUB(?, INTERVAL 14 DAY) AND (process_stat LIKE '%가결%' OR process_stat LIKE '%반영폐기%') THEN 1 END) AS recent_aprv_total
       FROM bill_tr
       WHERE age = ?;`,
       [anchorDate, anchorDate, anchorDate, CURRENT_AGE]
@@ -195,7 +201,11 @@ async function getWeeklyRadarData(): Promise<WeeklyRadarStats> {
     );
 
     const recent_events: PipelineEvent[] = eventRows.map((r) => {
-      if (r.process_dd && r.process_stat?.includes("가결")) {
+      const isSubstAprv =
+        r.process_dd &&
+        (r.process_stat?.includes("가결") || r.process_stat?.includes("반영폐기"));
+
+      if (isSubstAprv) {
         return {
           bill_id: r.bill_id,
           bill_nm: r.bill_nm,
@@ -204,7 +214,7 @@ async function getWeeklyRadarData(): Promise<WeeklyRadarStats> {
           pltprt_nm: r.pltprt_nm,
           action_type: "가결",
           event_date: r.process_dd,
-          detail_text: r.process_stat,
+          detail_text: r.process_stat?.includes("반영폐기") ? "대안반영(실질가결)" : r.process_stat,
         };
       }
       if (r.cmt_present_dd) {
@@ -283,7 +293,7 @@ export default async function HomePage() {
         {/* 1. 최상단 거시 요약 통계 카드 & 정당별 파이프라인 차트 */}
         <MacroStatsCards overview={macroOverview} parties={partyStats} />
 
-        {/* 2. 주간 레이더 및 랭킹 대시보드 (상태 상호 연동) */}
+        {/* 2. 주간 레이더 및 랭킹 대시보드 */}
         <RankingDashboard initialData={rankings} weeklyRadar={weeklyRadar} />
       </div>
     </main>

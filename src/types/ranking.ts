@@ -5,18 +5,20 @@ export interface BillRankingRow {
   pltprt_nm: string;
   rgn_nm: string | null;
   cmit_nm: string | null;
-  term_start_dd: string;
-  is_deferred: number;       // 1: 등원 100일 미만 유예 대상, 0: 정상 평가 대상
-  monthly_pace: number;      // 월평균 발의 페이스 (건/월)
+  term_start_dd: string | null;
+  is_deferred: number;
+  monthly_pace: number | string;
   ttl_motn_cnt: number;
-  aprv_cnt: number;
+  pure_aprv_cnt: number;      // 순수 원안/수정가결
+  alt_aprv_cnt: number;       // 위원회 대안/수정반영폐기
+  aprv_cnt: number;           // 실질가결 총합
   dss_cnt: number;
-  aprv_rate: number;
+  aprv_rate: number | string | null;
   cmt_present_cnt: number;
-  cmt_present_rate: number;
-  avg_cmt_days: number;
+  cmt_present_rate: number | string;
+  avg_cmt_days: number | string | null;
   own_cmit_motn_cnt: number;
-  own_cmit_motn_rate: number;
-  score: number | null;      // 유예 대상인 경우 null
-  rnkg: number | null;       // 유예 대상인 경우 null
+  own_cmit_motn_rate: number | string;
+  score: number | string | null;
+  rnkg: number | null;
 }
