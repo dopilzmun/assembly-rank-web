@@ -137,7 +137,7 @@ export default async function CommitteesPage() {
     <main className="py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* 페이지 타이틀 */}
+        {/* 페이지 슬림 헤더 */}
         <div className="flex items-center gap-2.5">
           <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-sm shrink-0">
             <Layers className="w-5 h-5" />
@@ -152,7 +152,7 @@ export default async function CommitteesPage() {
           </div>
         </div>
 
-        {/* 1. 정당별 입법 파이프라인 실적 비교 카드 */}
+        {/* 1. 정당별 입법 파이프라인 누적 비교 카드 */}
         <MacroStatsCards overview={macroOverview} parties={partyStats} />
 
         {/* 2. 상임위원회별 입법 병목 분석 섹션 */}

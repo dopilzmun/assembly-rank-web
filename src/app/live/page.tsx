@@ -1,10 +1,9 @@
 import { Metadata } from "next";
 import pool from "@/lib/db";
 import { RowDataPacket } from "mysql2";
-import { MacroOverviewStats } from "@/types/stats";
 import { WeeklyRadarStats, PipelineEvent, WeeklyActiveMover } from "@/types/activity";
 import LiveRadarView from "@/components/LiveRadarView";
-import { Zap, Award, FileText, Clock, CheckCircle2 } from "lucide-react";
+import { Zap } from "lucide-react";
 
 export const revalidate = 86400;
 const CURRENT_AGE = 22;
@@ -13,51 +12,6 @@ export const metadata: Metadata = {
   title: `입법 라이브 피드 & 주간 레이더 | 국회의원 입법활동 모니터`,
   description: `최근 14일 국회 법안 발의·상정·가결 실시간 타임라인 피드 및 다발의 의원 동향 모니터링`,
 };
-
-async function getMacroOverview(): Promise<MacroOverviewStats> {
-  try {
-    const query = `
-      SELECT 
-        COUNT(DISTINCT repve_assemb_id) AS total_assemb_cnt,
-        COUNT(*) AS total_motn_cnt,
-        COUNT(CASE WHEN process_stat LIKE '%가결%' OR process_stat LIKE '%반영폐기%' THEN 1 END) AS total_aprv_cnt,
-        COUNT(CASE WHEN cmt_present_dd IS NOT NULL THEN 1 END) AS total_cmt_present_cnt
-      FROM bill_tr
-      WHERE age = ?;
-    `;
-    const [rows] = await pool.query<RowDataPacket[]>(query, [CURRENT_AGE]);
-    const r = rows[0] || {};
-
-    const total_motn_cnt = Number(r.total_motn_cnt) || 0;
-    const total_aprv_cnt = Number(r.total_aprv_cnt) || 0;
-    const total_cmt_present_cnt = Number(r.total_cmt_present_cnt) || 0;
-
-    return {
-      total_assemb_cnt: Number(r.total_assemb_cnt) || 0,
-      total_motn_cnt,
-      total_aprv_cnt,
-      total_cmt_present_cnt,
-      overall_aprv_rate:
-        total_motn_cnt > 0
-          ? Math.round((total_aprv_cnt / total_motn_cnt) * 1000) / 10
-          : 0.0,
-      overall_cmt_present_rate:
-        total_motn_cnt > 0
-          ? Math.round((total_cmt_present_cnt / total_motn_cnt) * 1000) / 10
-          : 0.0,
-    };
-  } catch (error) {
-    console.error("Failed to fetch macro overview:", error);
-    return {
-      total_assemb_cnt: 0,
-      total_motn_cnt: 0,
-      total_aprv_cnt: 0,
-      total_cmt_present_cnt: 0,
-      overall_aprv_rate: 0.0,
-      overall_cmt_present_rate: 0.0,
-    };
-  }
-}
 
 async function getWeeklyRadarData(): Promise<WeeklyRadarStats> {
   try {
@@ -180,16 +134,13 @@ async function getWeeklyRadarData(): Promise<WeeklyRadarStats> {
 }
 
 export default async function LivePage() {
-  const [macroOverview, weeklyRadar] = await Promise.all([
-    getMacroOverview(),
-    getWeeklyRadarData(),
-  ]);
+  const weeklyRadar = await getWeeklyRadarData();
 
   return (
     <main className="py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
         
-        {/* 페이지 타이틀 */}
+        {/* 페이지 슬림 헤더 */}
         <div className="flex items-center gap-2.5">
           <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-sm shrink-0">
             <Zap className="w-5 h-5" />
@@ -199,79 +150,12 @@ export default async function LivePage() {
               실시간 입법 파이프라인 & 레이더
             </h1>
             <p className="text-slate-500 text-xs mt-0.5">
-              국회 본회의 및 상임위원회 법안 처리 현황 실시간 동기화
+              국회 본회의 및 소관 상임위원회 법안 처리 현황 실시간 동기화
             </p>
           </div>
         </div>
 
-        {/* 국회 총괄 4대 거시 지표 */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-              <span className="text-[11px] font-semibold text-slate-400 block mb-0.5 whitespace-nowrap">
-                등록 국회의원
-              </span>
-              <strong className="text-xl sm:text-2xl font-black text-slate-900 font-mono">
-                {macroOverview.total_assemb_cnt}
-              </strong>
-              <span className="text-xs text-slate-500 ml-1">인 전수</span>
-            </div>
-            <div className="p-2.5 bg-slate-50 rounded-xl text-slate-600 shrink-0">
-              <Award className="w-5 h-5 text-indigo-600" />
-            </div>
-          </div>
-
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-              <span className="text-[11px] font-semibold text-slate-400 block mb-0.5 whitespace-nowrap">
-                총 대표발의 법안
-              </span>
-              <strong className="text-xl sm:text-2xl font-black text-slate-900 font-mono">
-                {macroOverview.total_motn_cnt.toLocaleString()}
-              </strong>
-              <span className="text-xs text-slate-500 ml-1">건</span>
-            </div>
-            <div className="p-2.5 bg-slate-50 rounded-xl text-slate-600 shrink-0">
-              <FileText className="w-5 h-5 text-blue-600" />
-            </div>
-          </div>
-
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-              <span className="text-[11px] font-semibold text-slate-400 block mb-0.5 whitespace-nowrap">
-                상임위 심사 착수율
-              </span>
-              <strong className="text-xl sm:text-2xl font-black text-indigo-700 font-mono">
-                {macroOverview.overall_cmt_present_rate}%
-              </strong>
-              <span className="text-[10px] text-slate-400 block font-mono">
-                {macroOverview.total_cmt_present_cnt.toLocaleString()}건 상정
-              </span>
-            </div>
-            <div className="p-2.5 bg-indigo-50 rounded-xl text-indigo-600 shrink-0">
-              <Clock className="w-5 h-5" />
-            </div>
-          </div>
-
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-              <span className="text-[11px] font-semibold text-slate-400 block mb-0.5 whitespace-nowrap">
-                본회의 실질 가결률
-              </span>
-              <strong className="text-xl sm:text-2xl font-black text-emerald-600 font-mono">
-                {macroOverview.overall_aprv_rate}%
-              </strong>
-              <span className="text-[10px] text-slate-400 block font-mono">
-                {macroOverview.total_aprv_cnt.toLocaleString()}건 처리
-              </span>
-            </div>
-            <div className="p-2.5 bg-emerald-50 rounded-xl text-emerald-600 shrink-0">
-              <CheckCircle2 className="w-5 h-5" />
-            </div>
-          </div>
-        </div>
-
-        {/* 입법 레이더 & 실시간 라이브 피드 타임라인 */}
+        {/* 입법 레이더 & 실시간 라이브 피드 타임라인 전수 노출 */}
         <LiveRadarView data={weeklyRadar} />
 
       </div>
