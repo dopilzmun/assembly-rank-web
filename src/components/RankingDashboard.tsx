@@ -92,6 +92,7 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
+  // URL 쿼리 파라미터(?member=XXX, ?q=YYY) 동기화
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
@@ -99,6 +100,10 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
     if (memberId) {
       const target = initialData.find((m) => m.assemb_id === memberId);
       if (target) setSelectedAssemb(target);
+    }
+    const q = params.get("q");
+    if (q) {
+      setSearchQuery(q);
     }
   }, [initialData]);
 
@@ -237,7 +242,6 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
 
   return (
     <div className="space-y-6">
-      {/* 주간 레이더 & 실시간 피드 */}
       {weeklyRadar && (
         <LegislativeLiveRadar
           data={weeklyRadar}
@@ -366,7 +370,7 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
         </span>
       </div>
 
-      {/* 2. [모바일 화면] 전용 카드 뷰 (줄바꿈 없는 컴팩트 레이아웃) */}
+      {/* 2. [모바일 전용] 컴팩트 카드 뷰 */}
       <div className="block md:hidden space-y-2.5">
         {sortedData.length > 0 ? (
           sortedData.map((row) => {
@@ -386,7 +390,6 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
                     : "border-slate-200 hover:border-slate-300"
                 }`}
               >
-                {/* 1열: 순위, 이름, 정당, 점수, VS 버튼 (절대 2라인 안 넘어가도록 고정) */}
                 <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
                   <div className="flex items-center gap-1.5 truncate">
                     {isDeferred ? (
@@ -443,13 +446,11 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
                   </div>
                 </div>
 
-                {/* 2열: 상임위 & 지역구 (1줄 말줄임) */}
                 <div className="flex items-center justify-between text-[11px] text-slate-400 mb-2.5 px-0.5 whitespace-nowrap overflow-hidden">
                   <span className="truncate max-w-[68%]">{row.cmit_nm || "상임위 미배정"}</span>
                   <span className="shrink-0 text-slate-400">{row.rgn_nm || "비례대표"}</span>
                 </div>
 
-                {/* 3열: 4분할 핵심 지표 (한 줄 유지) */}
                 <div className="grid grid-cols-4 gap-1 text-center bg-slate-50/80 rounded-lg p-2 font-mono">
                   <div className="overflow-hidden">
                     <span className="text-[10px] text-slate-400 block whitespace-nowrap truncate">발의</span>
@@ -501,7 +502,7 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
         )}
       </div>
 
-      {/* 3. [PC 화면] 전용 10컬럼 테이블 (md 이상 노출) */}
+      {/* 3. [PC 전용] 10컬럼 분석 테이블 */}
       <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600">
@@ -745,7 +746,7 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
         </div>
       </div>
 
-      {/* 4. 하단 플로팅 맞비교 독 (원클릭 상대 검색 버튼 탑재) */}
+      {/* 4. 하단 플로팅 맞비교 독 (모바일 상단 탭 덕분에 완전한 공간 독점) */}
       {compareList.length > 0 && (
         <div className="fixed bottom-4 left-3 right-3 md:left-1/2 md:right-auto md:-translate-x-1/2 z-40 bg-slate-900 text-white px-3.5 py-2.5 rounded-2xl shadow-2xl border border-slate-700 flex items-center justify-between md:justify-start gap-2 sm:gap-3 animate-in fade-in slide-in-from-bottom-3 duration-200">
           <div className="flex items-center gap-1.5 shrink-0">
@@ -753,7 +754,6 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
             <span className="text-xs font-bold text-slate-200 hidden sm:inline">1:1 맞비교</span>
           </div>
 
-          {/* 선택된 의원 목록 */}
           <div className="flex items-center gap-1.5 text-xs truncate">
             {compareList.map((m) => (
               <span
@@ -767,7 +767,6 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
               </span>
             ))}
 
-            {/* 1명만 선택됐을 때: 즉시 팝업 검색 버튼 표출 */}
             {compareList.length === 1 && (
               <button
                 onClick={() => setIsSearchModalOpen(true)}
@@ -809,7 +808,7 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
         onOpenCompareWith={(m) => {
           setCompareList([m]);
           handleSelectAssemb(null);
-          setIsSearchModalOpen(true); // 바로 상대 검색창 실행
+          setIsSearchModalOpen(true);
         }}
       />
 
@@ -825,7 +824,7 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
         />
       )}
 
-      {/* 7. 플로팅 독에서 바로 호출되는 상대 의원 검색 모달 */}
+      {/* 7. 상대 의원 빠른 검색 모달 */}
       <MemberSearchModal
         isOpen={isSearchModalOpen}
         onClose={() => setIsSearchModalOpen(false)}
@@ -837,7 +836,7 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
             setCompareList([picked]);
           } else {
             setCompareList([compareList[0], picked]);
-            setIsCompareModalOpen(true); // 2명이 채워지는 즉시 대결 분석창 오픈
+            setIsCompareModalOpen(true);
           }
         }}
       />

@@ -21,14 +21,14 @@ async function handleRevalidate(request: NextRequest) {
   }
 
   try {
-    // 3개 메인 라우트 캐시 동시 파기 및 재생성
     revalidatePath("/", "page");
+    revalidatePath("/rankings", "page");
     revalidatePath("/live", "page");
     revalidatePath("/committees", "page");
 
     return NextResponse.json({
       revalidated: true,
-      paths: ["/", "/live", "/committees"],
+      paths: ["/", "/rankings", "/live", "/committees"],
       now: new Date().toISOString(),
       message: "모든 페이지 캐시가 성공적으로 갱신되었습니다.",
     });

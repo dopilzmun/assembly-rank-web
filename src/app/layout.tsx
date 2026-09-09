@@ -15,11 +15,8 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className="bg-slate-50 text-slate-900 min-h-screen flex flex-col antialiased">
-        {/* 공통 상단 GNB & 모바일 하단 탭바 */}
         <Navigation />
-
-        {/* 본문 (모바일 하단 탭바 높이만큼 하단 패딩 pb-24 확보) */}
-        <div className="flex-1 pb-24 md:pb-12">
+        <div className="flex-1 pb-16">
           {children}
         </div>
       </body>
