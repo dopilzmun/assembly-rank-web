@@ -16,6 +16,7 @@ import {
   Info,
   ShieldAlert,
   BarChart2,
+  Sparkles,
 } from "lucide-react";
 
 interface AssembDetailDrawerProps {
@@ -73,6 +74,8 @@ export default function AssembDetailDrawer({
   const isDeferred = assemb.is_deferred === 1;
   const totalMotnCnt = Number(assemb.ttl_motn_cnt) || 0;
   const monthlyPace = Number(assemb.monthly_pace || 0).toFixed(1);
+  const pureAprvCnt = Number(assemb.pure_aprv_cnt) || 0;
+  const altAprvCnt = Number(assemb.alt_aprv_cnt) || 0;
   const radarStats = calculateRadarStats(assemb);
 
   return (
@@ -118,7 +121,7 @@ export default function AssembDetailDrawer({
               </div>
             </div>
 
-            {/* 규칙 2: 등원 100일 미만 유예 배너 */}
+            {/* 등원 100일 미만 유예 및 직무 특수 배너 */}
             {isDeferred ? (
               <div className="bg-slate-100 border border-slate-300 rounded-xl p-3.5 text-xs text-slate-700 space-y-1 shadow-sm">
                 <div className="font-semibold flex items-center gap-1.5 text-slate-900">
@@ -141,7 +144,7 @@ export default function AssembDetailDrawer({
               </div>
             ) : null}
 
-            {/* 핵심 지표 칩 */}
+            {/* 핵심 지표 5분할 칩 */}
             <div className="grid grid-cols-5 gap-1.5 text-center text-xs">
               <div className="bg-indigo-50/80 p-2 rounded-lg border border-indigo-100 shadow-sm flex flex-col justify-center">
                 <span className="text-indigo-600 block text-[10px] mb-0.5 font-semibold">종합점수</span>
@@ -163,12 +166,15 @@ export default function AssembDetailDrawer({
                 <strong className="text-slate-700 text-xs font-mono">{Number(assemb.cmt_present_rate) || 0}%</strong>
               </div>
               <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
-                <span className="text-slate-400 block text-[10px] mb-0.5">가결수</span>
+                <span className="text-slate-400 block text-[10px] mb-0.5">실질가결</span>
                 <strong className="text-emerald-600 text-xs font-mono">{Number(assemb.aprv_cnt) || 0}건</strong>
+                <span className="text-[9px] text-slate-400 block font-mono">
+                  원{pureAprvCnt} · 대{altAprvCnt}
+                </span>
               </div>
             </div>
 
-            {/* 6대 역량 육각형 레이더 차트 (Drawer 내 탑재) */}
+            {/* 6대 역량 육각형 레이더 차트 */}
             <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center">
               <div className="text-[11px] font-bold text-slate-500 mb-1 flex items-center gap-1">
                 <BarChart2 className="w-3.5 h-3.5 text-indigo-600" /> 6대 입법 역량 스탯 밸런스
@@ -196,7 +202,7 @@ export default function AssembDetailDrawer({
               }`}
             >
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              본회의 가결 법안
+              본회의 가결 및 실질반영
               <span className="ml-1 px-1.5 py-0.2 bg-emerald-50 text-emerald-700 rounded-full text-[11px] font-mono border border-emerald-200">
                 {billData?.aprv_bills.length ?? 0}
               </span>
@@ -211,7 +217,7 @@ export default function AssembDetailDrawer({
               }`}
             >
               <Clock className="w-4 h-4 text-indigo-600" />
-              상임위 계류 / 대기 법안
+              상임위 계류 / 심사 대기
               <span className="ml-1 px-1.5 py-0.2 bg-indigo-50 text-indigo-700 rounded-full text-[11px] font-mono border border-indigo-200">
                 {billData?.pending_bills.length ?? 0}
               </span>
@@ -269,14 +275,24 @@ export default function AssembDetailDrawer({
                     <span className="font-mono text-slate-400">발의: {bill.motn_dd}</span>
 
                     {activeTab === "aprv" ? (
-                      <>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          {bill.process_stat}
-                        </span>
-                        {bill.process_dd && (
-                          <span className="font-mono text-slate-400">의결: {bill.process_dd}</span>
+                      <div className="flex items-center gap-1.5 font-mono">
+                        {bill.process_stat?.includes("반영폐기") ? (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200"
+                            title="법안 취지가 위원회 대안에 반영되어 본회의를 통과함"
+                          >
+                            <Sparkles className="w-3 h-3 text-sky-500" />
+                            대안반영(실질가결)
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            {bill.process_stat}
+                          </span>
                         )}
-                      </>
+                        {bill.process_dd && (
+                          <span className="text-slate-400 text-[11px]">의결: {bill.process_dd}</span>
+                        )}
+                      </div>
                     ) : (
                       <>
                         {bill.cmt_present_dd ? (
@@ -302,7 +318,7 @@ export default function AssembDetailDrawer({
                     : totalMotnCnt === 0
                     ? "대표발의된 법안 내역이 없습니다."
                     : activeTab === "aprv"
-                    ? "가결 처리된 법안이 없습니다."
+                    ? "본회의 가결 및 대안반영 실적이 없습니다."
                     : "심사 대기 중인 법안이 없습니다."}
                 </p>
                 {totalMotnCnt === 0 && !isDeferred && (

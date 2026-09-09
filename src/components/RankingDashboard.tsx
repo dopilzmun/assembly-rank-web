@@ -48,6 +48,8 @@ type SortField =
   | "cmt_present_rate"
   | "avg_cmt_days"
   | "aprv_cnt"
+  | "pure_aprv_cnt"
+  | "alt_aprv_cnt"
   | "aprv_rate";
 
 type SortDirection = "asc" | "desc";
@@ -87,7 +89,6 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
   const [compareList, setCompareList] = useState<BillRankingRow[]>([]);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
 
-  // 레이더 또는 피드에서 의원 클릭 시 드로어 오픈 핸들러
   const handleSelectAssembById = (assembId: string) => {
     const target = initialData.find((m) => m.assemb_id === assembId);
     if (target) {
@@ -217,7 +218,7 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
 
   return (
     <div className="space-y-6">
-      {/* 0. 최근 입법 레이더 & 실시간 파이프라인 피드 위젯 (상태 연동 탑재) */}
+      {/* 0. 최근 입법 레이더 & 실시간 파이프라인 피드 위젯 */}
       {weeklyRadar && (
         <LegislativeLiveRadar
           data={weeklyRadar}
@@ -311,13 +312,13 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
         </div>
       </div>
 
-      {/* 2. 지표 배너 */}
+      {/* 2. 지표 배너 (실질가결 산정 기준 안내 반영) */}
       <div className="bg-indigo-50/80 border border-indigo-100 rounded-lg p-3 text-xs text-indigo-950 flex flex-wrap gap-x-5 gap-y-1.5 items-center">
         <span className="font-bold flex items-center gap-1 text-indigo-700">
           <Award className="w-4 h-4 text-indigo-600" /> 종합 점수 (100점):
         </span>
         <span>
-          <strong>가결 성과(45점)</strong> + <strong>심사 추진력(35점)</strong> + <strong>입법 규모(20점)</strong>
+          <strong>실질가결 성과(45점)</strong> [원안 100% + 대안반영 70%] + <strong>심사 추진력(35점)</strong> + <strong>입법 규모(20점)</strong>
         </span>
         <span className="text-slate-500 hidden md:inline">
           | 각 지표 하단 회색 수치는 모수(건수/페이스)입니다.
@@ -415,10 +416,11 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
                 </th>
                 <th
                   onClick={() => handleSort("aprv_cnt")}
-                  className="py-3 px-3 text-right cursor-pointer hover:bg-slate-200/70 transition-colors group w-24"
+                  className="py-3 px-3 text-right cursor-pointer hover:bg-slate-200/70 transition-colors group w-28"
+                  title="본회의 가결(원안/수정가결) 및 위원회 대안반영폐기 실적"
                 >
                   <div className="flex items-center justify-end gap-1">
-                    <span>본회의 가결</span>
+                    <span>본회의 실질가결</span>
                     {renderSortIcon("aprv_cnt")}
                   </div>
                 </th>
@@ -433,6 +435,8 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
                   const monthlyPace = Number(row.monthly_pace || 0).toFixed(1);
                   const isDeferred = row.is_deferred === 1;
                   const isSelectedForCompare = compareList.some((m) => m.assemb_id === row.assemb_id);
+                  const pureCnt = Number(row.pure_aprv_cnt) || 0;
+                  const altCnt = Number(row.alt_aprv_cnt) || 0;
 
                   return (
                     <tr
@@ -581,14 +585,25 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
                         )}
                       </td>
 
+                      {/* 본회의 실질가결 (순수가결 + 대안반영 상세 분리 표기) */}
                       <td className="py-3.5 px-3 text-right whitespace-nowrap">
                         <div className="flex flex-col items-end">
-                          <span className="font-bold text-emerald-600 font-mono">
+                          <span
+                            className="font-bold text-emerald-600 font-mono"
+                            title={`원안·수정가결 ${pureCnt}건 + 위원회 대안반영 ${altCnt}건`}
+                          >
                             {(Number(row.aprv_cnt) || 0).toLocaleString()}건
                           </span>
-                          <span className="text-[10px] font-semibold text-slate-500 font-mono">
-                            {row.aprv_rate !== null ? `${Number(row.aprv_rate)}%` : "-"}
-                          </span>
+                          <div className="flex items-center gap-1 text-[10px] text-slate-500 font-mono">
+                            <span className="text-emerald-700 font-medium" title="순수 원안/수정가결">
+                              원{pureCnt}
+                            </span>
+                            <span>·</span>
+                            <span className="text-sky-700 font-medium" title="위원회 대안반영폐기">
+                              대{altCnt}
+                            </span>
+                            <span>({row.aprv_rate !== null ? `${Number(row.aprv_rate)}%` : "-"})</span>
+                          </div>
                         </div>
                       </td>
                     </tr>
