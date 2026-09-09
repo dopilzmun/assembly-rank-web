@@ -4,8 +4,10 @@ import { RowDataPacket } from "mysql2";
 import { BillRankingRow } from "@/types/ranking";
 import { MacroOverviewStats, PartyOverviewStats } from "@/types/stats";
 import { WeeklyRadarStats, PipelineEvent, WeeklyActiveMover } from "@/types/activity";
+import { CommitteeBottleneckStats } from "@/types/committee";
 import RankingDashboard from "@/components/RankingDashboard";
 import MacroStatsCards from "@/components/MacroStatsCards";
+import CommitteeBottleneckSection from "@/components/CommitteeBottleneckSection";
 import { Layers } from "lucide-react";
 
 export const revalidate = 3600;
@@ -17,7 +19,7 @@ export const metadata: Metadata = {
   description: `열린국회정보 Open API 기반 제${CURRENT_AGE}대 국회의원 법안 발의·상정·가결 지표 분석 모니터`,
 };
 
-// 1. 의원별 지표 뷰 조회 (신규 가결 컬럼 2개 포함)
+// 1. 의원별 지표 뷰 조회
 async function getBillRankings(): Promise<BillRankingRow[]> {
   try {
     const [rows] = await pool.query<RowDataPacket[]>(
@@ -141,7 +143,40 @@ async function getPartyStats(): Promise<PartyOverviewStats[]> {
   }
 }
 
-// 4. 금주의 입법 레이더 & 실시간 피드 집계
+// 4. (신규) 상임위별 입법 병목 분석 지표 집계
+async function getCommitteeBottleneckData(): Promise<CommitteeBottleneckStats[]> {
+  try {
+    const query = `
+      SELECT 
+        curr_cmit_nm,
+        COUNT(*) AS total_bills,
+        COUNT(CASE WHEN cmt_present_dd IS NOT NULL THEN 1 END) AS present_cnt,
+        ROUND((COUNT(CASE WHEN cmt_present_dd IS NOT NULL THEN 1 END) / COUNT(*)) * 100, 1) AS present_rate,
+        ROUND(AVG(CASE WHEN cmt_present_dd IS NOT NULL THEN DATEDIFF(cmt_present_dd, motn_dd) END), 1) AS avg_days,
+        COUNT(CASE WHEN process_stat LIKE '%가결%' OR process_stat LIKE '%반영폐기%' THEN 1 END) AS aprv_cnt,
+        ROUND((COUNT(CASE WHEN process_stat LIKE '%가결%' OR process_stat LIKE '%반영폐기%' THEN 1 END) / COUNT(*)) * 100, 1) AS aprv_rate
+      FROM bill_tr
+      WHERE age = ? AND curr_cmit_nm IS NOT NULL AND curr_cmit_nm != ''
+      GROUP BY curr_cmit_nm
+      ORDER BY total_bills DESC;
+    `;
+    const [rows] = await pool.query<RowDataPacket[]>(query, [CURRENT_AGE]);
+    return (rows as RowDataPacket[]).map((r) => ({
+      curr_cmit_nm: r.curr_cmit_nm,
+      total_bills: Number(r.total_bills) || 0,
+      present_cnt: Number(r.present_cnt) || 0,
+      present_rate: Number(r.present_rate) || 0,
+      avg_days: r.avg_days !== null && r.avg_days !== undefined ? Number(r.avg_days) : null,
+      aprv_cnt: Number(r.aprv_cnt) || 0,
+      aprv_rate: Number(r.aprv_rate) || 0,
+    }));
+  } catch (error) {
+    console.error("Failed to fetch committee bottleneck data:", error);
+    return [];
+  }
+}
+
+// 5. 금주의 입법 레이더 & 실시간 피드 집계
 async function getWeeklyRadarData(): Promise<WeeklyRadarStats> {
   try {
     const [anchorRows] = await pool.query<RowDataPacket[]>(
@@ -263,16 +298,19 @@ async function getWeeklyRadarData(): Promise<WeeklyRadarStats> {
 }
 
 export default async function HomePage() {
-  const [rankings, macroOverview, partyStats, weeklyRadar] = await Promise.all([
-    getBillRankings(),
-    getMacroOverview(),
-    getPartyStats(),
-    getWeeklyRadarData(),
-  ]);
+  const [rankings, macroOverview, partyStats, committeeStats, weeklyRadar] =
+    await Promise.all([
+      getBillRankings(),
+      getMacroOverview(),
+      getPartyStats(),
+      getCommitteeBottleneckData(),
+      getWeeklyRadarData(),
+    ]);
 
   return (
     <main className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
+        {/* 서비스 타이틀 헤더 */}
         <div>
           <div className="flex flex-wrap items-center gap-3 mb-2">
             <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-sm">
@@ -293,7 +331,10 @@ export default async function HomePage() {
         {/* 1. 최상단 거시 요약 통계 카드 & 정당별 파이프라인 차트 */}
         <MacroStatsCards overview={macroOverview} parties={partyStats} />
 
-        {/* 2. 주간 레이더 및 랭킹 대시보드 */}
+        {/* 2. (신규) 상임위원회별 입법 병목 분석 섹션 */}
+        <CommitteeBottleneckSection data={committeeStats} />
+
+        {/* 3. 주간 레이더 및 의원별 랭킹 대시보드 */}
         <RankingDashboard initialData={rankings} weeklyRadar={weeklyRadar} />
       </div>
     </main>
