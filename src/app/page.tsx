@@ -6,7 +6,6 @@ import { MacroOverviewStats, PartyOverviewStats } from "@/types/stats";
 import { WeeklyRadarStats, PipelineEvent, WeeklyActiveMover } from "@/types/activity";
 import RankingDashboard from "@/components/RankingDashboard";
 import MacroStatsCards from "@/components/MacroStatsCards";
-import LegislativeLiveRadar from "@/components/LegislativeLiveRadar";
 import { Layers } from "lucide-react";
 
 export const revalidate = 3600;
@@ -18,7 +17,6 @@ export const metadata: Metadata = {
   description: `열린국회정보 Open API 기반 제${CURRENT_AGE}대 국회의원 법안 발의·상정·가결 지표 분석 모니터`,
 };
 
-// 1. 의원별 지표 뷰 조회
 async function getBillRankings(): Promise<BillRankingRow[]> {
   try {
     const [rows] = await pool.query<RowDataPacket[]>(
@@ -59,7 +57,6 @@ async function getBillRankings(): Promise<BillRankingRow[]> {
   }
 }
 
-// 2. 국회 총괄 거시 지표 집계
 async function getMacroOverview(): Promise<MacroOverviewStats> {
   try {
     const query = `
@@ -105,7 +102,6 @@ async function getMacroOverview(): Promise<MacroOverviewStats> {
   }
 }
 
-// 3. 정당별 지표 집계
 async function getPartyStats(): Promise<PartyOverviewStats[]> {
   try {
     const query = `
@@ -140,17 +136,14 @@ async function getPartyStats(): Promise<PartyOverviewStats[]> {
   }
 }
 
-// 4. (신규) 금주의 입법 레이더 & 실시간 피드 집계
 async function getWeeklyRadarData(): Promise<WeeklyRadarStats> {
   try {
-    // A. 최신 법안 기준일자 파악 (휴회기/데이터 간극 방지 앵커)
     const [anchorRows] = await pool.query<RowDataPacket[]>(
       `SELECT DATE_FORMAT(COALESCE(MAX(motn_dd), CURRENT_DATE), '%Y-%m-%d') as anchor_date FROM bill_tr WHERE age = ?;`,
       [CURRENT_AGE]
     );
     const anchorDate = anchorRows[0]?.anchor_date || "2024-05-30";
 
-    // B. 최근 14일 요약 수치
     const [summaryRows] = await pool.query<RowDataPacket[]>(
       `SELECT 
         COUNT(CASE WHEN motn_dd >= DATE_SUB(?, INTERVAL 14 DAY) THEN 1 END) AS recent_motn_total,
@@ -162,7 +155,6 @@ async function getWeeklyRadarData(): Promise<WeeklyRadarStats> {
     );
     const s = summaryRows[0] || {};
 
-    // C. 최근 14일 최다 발의 의원 TOP 3 (Movers)
     const [moverRows] = await pool.query<RowDataPacket[]>(
       `SELECT 
         m.assemb_id,
@@ -178,7 +170,6 @@ async function getWeeklyRadarData(): Promise<WeeklyRadarStats> {
       [CURRENT_AGE, anchorDate]
     );
 
-    // D. 실시간 파이프라인 이벤트 최신 15건 추출
     const [eventRows] = await pool.query<RowDataPacket[]>(
       `SELECT 
         b.bill_id,
@@ -272,7 +263,6 @@ export default async function HomePage() {
   return (
     <main className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* 서비스 타이틀 헤더 */}
         <div>
           <div className="flex flex-wrap items-center gap-3 mb-2">
             <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-sm">
@@ -293,11 +283,8 @@ export default async function HomePage() {
         {/* 1. 최상단 거시 요약 통계 카드 & 정당별 파이프라인 차트 */}
         <MacroStatsCards overview={macroOverview} parties={partyStats} />
 
-        {/* 2. (신규) 금주의 입법 레이더 & 실시간 파이프라인 피드 */}
-        <LegislativeLiveRadar data={weeklyRadar} />
-
-        {/* 3. 필터 및 입법 지표 랭킹 테이블 */}
-        <RankingDashboard initialData={rankings} />
+        {/* 2. 주간 레이더 및 랭킹 대시보드 (상태 상호 연동) */}
+        <RankingDashboard initialData={rankings} weeklyRadar={weeklyRadar} />
       </div>
     </main>
   );

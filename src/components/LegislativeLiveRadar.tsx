@@ -14,6 +14,7 @@ import {
 
 interface LegislativeLiveRadarProps {
   data: WeeklyRadarStats;
+  onSelectAssemb?: (assembId: string) => void;
 }
 
 const PARTY_COLORS: Record<string, string> = {
@@ -27,13 +28,12 @@ const PARTY_COLORS: Record<string, string> = {
   무소속: "bg-gray-50 text-gray-700 border-gray-200",
 };
 
-export default function LegislativeLiveRadar({ data }: LegislativeLiveRadarProps) {
+export default function LegislativeLiveRadar({ data, onSelectAssemb }: LegislativeLiveRadarProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
       
       {/* 1. 좌측: 금주의 입법 레이더 (Weekly Movers & Activity Summary) */}
       <div className="lg:col-span-5 bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-900 rounded-2xl p-5 text-white shadow-md flex flex-col justify-between relative overflow-hidden">
-        {/* 배경 은은한 빛 효과 */}
         <div className="absolute -right-10 -bottom-10 w-44 h-44 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="space-y-4 relative z-10">
@@ -81,11 +81,11 @@ export default function LegislativeLiveRadar({ data }: LegislativeLiveRadarProps
             </div>
           </div>
 
-          {/* 최근 최다 발의 의원 TOP 3 */}
+          {/* 최근 최다 발의 의원 TOP 3 (클릭 시 드로어 연동) */}
           <div className="space-y-2 pt-1">
             <span className="text-xs font-semibold text-indigo-200 flex items-center justify-between">
               <span>🔥 최근 최다 발의 의원 (Movers)</span>
-              <span className="text-[10px] text-indigo-300/70 font-normal">누적 순위 외 단기 페이스</span>
+              <span className="text-[10px] text-indigo-300/70 font-normal">클릭 시 상세 성적표 확인</span>
             </span>
 
             <div className="space-y-1.5">
@@ -93,20 +93,25 @@ export default function LegislativeLiveRadar({ data }: LegislativeLiveRadarProps
                 data.top_movers.map((mover, idx) => (
                   <div
                     key={mover.assemb_id}
-                    className="flex items-center justify-between bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg px-3 py-2 transition-colors text-xs"
+                    onClick={() => onSelectAssemb?.(mover.assemb_id)}
+                    title={`${mover.assemb_nm} 의원 상세 입법 지표 보기`}
+                    className="flex items-center justify-between bg-white/5 hover:bg-indigo-600/30 border border-white/10 hover:border-indigo-400/50 rounded-lg px-3 py-2 transition-all text-xs cursor-pointer group shadow-sm"
                   >
                     <div className="flex items-center gap-2">
                       <span className="w-4 text-center font-bold font-mono text-amber-400 text-xs">
                         {idx + 1}
                       </span>
-                      <span className="font-semibold text-white">{mover.assemb_nm}</span>
+                      <span className="font-semibold text-white group-hover:text-indigo-200 transition-colors">
+                        {mover.assemb_nm}
+                      </span>
                       <span className="text-[10px] text-slate-300 px-1.5 py-0.2 rounded bg-white/10">
                         {mover.pltprt_nm}
                       </span>
                     </div>
-                    <div className="font-mono text-xs">
+                    <div className="flex items-center gap-1.5 font-mono text-xs">
                       <strong className="text-indigo-300 font-bold">{mover.recent_cnt}</strong>
-                      <span className="text-slate-400 text-[11px] ml-0.5">건 발의</span>
+                      <span className="text-slate-400 text-[11px]">건 발의</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-indigo-400/60 group-hover:text-indigo-300 group-hover:translate-x-0.5 transition-all" />
                     </div>
                   </div>
                 ))
@@ -120,7 +125,7 @@ export default function LegislativeLiveRadar({ data }: LegislativeLiveRadarProps
         </div>
 
         <div className="pt-3 mt-3 border-t border-white/10 text-[11px] text-indigo-300/80 flex items-center justify-between">
-          <span>* 누적 점수와 무관하게 최근 법안 제출 활동량 집계</span>
+          <span>* 의원 행을 클릭하면 상세 성적표 Drawer가 표시됩니다.</span>
           <ChevronRight className="w-3.5 h-3.5 text-indigo-400" />
         </div>
       </div>
@@ -148,8 +153,8 @@ export default function LegislativeLiveRadar({ data }: LegislativeLiveRadarProps
             </div>
           </div>
 
-          {/* 스크롤 가능한 타임라인 리스트 (높이 약 220px) */}
-          <div className="space-y-2.5 max-h-[225px] overflow-y-auto pr-1">
+          {/* 스크롤 가능한 타임라인 리스트 (클릭 시 의원 드로어 호출) */}
+          <div className="space-y-2 max-h-[225px] overflow-y-auto pr-1">
             {data.recent_events.length > 0 ? (
               data.recent_events.map((evt, idx) => {
                 const isAprv = evt.action_type === "가결";
@@ -158,7 +163,9 @@ export default function LegislativeLiveRadar({ data }: LegislativeLiveRadarProps
                 return (
                   <div
                     key={`${evt.bill_id}-${idx}`}
-                    className="flex items-start gap-3 p-2.5 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50/70 transition-all text-xs"
+                    onClick={() => onSelectAssemb?.(evt.assemb_id)}
+                    title={`${evt.assemb_nm} 의원 상세 입법 정보 보기`}
+                    className="flex items-start gap-3 p-2.5 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/40 transition-all text-xs cursor-pointer group"
                   >
                     {/* 날짜 & 액션 뱃지 */}
                     <div className="flex flex-col items-center shrink-0 w-16 pt-0.5">
@@ -183,7 +190,9 @@ export default function LegislativeLiveRadar({ data }: LegislativeLiveRadarProps
                     {/* 의원명 & 법안 요약 */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-1">
-                        <span className="font-bold text-slate-900">{evt.assemb_nm}</span>
+                        <span className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                          {evt.assemb_nm}
+                        </span>
                         <span
                           className={`px-1.5 py-0.2 rounded text-[10px] font-medium border ${
                             PARTY_COLORS[evt.pltprt_nm] || "bg-gray-50 text-gray-600 border-gray-200"
@@ -191,21 +200,22 @@ export default function LegislativeLiveRadar({ data }: LegislativeLiveRadarProps
                         >
                           {evt.pltprt_nm}
                         </span>
-                        <span className="text-[11px] text-slate-400 truncate max-w-[160px]">
+                        <span className="text-[11px] text-slate-400 truncate max-w-[180px]">
                           {evt.detail_text}
                         </span>
                       </div>
-                      <p className="text-slate-700 font-medium truncate" title={evt.bill_nm}>
+                      <p className="text-slate-700 font-medium truncate group-hover:text-slate-900" title={evt.bill_nm}>
                         {evt.bill_nm}
                       </p>
                     </div>
 
-                    {/* 국회 의안시스템 외부 링크 */}
+                    {/* 국회 의안시스템 외부 링크 (이벤트 버블링 차단) */}
                     <a
                       href={`http://likms.assembly.go.kr/bill/billDetail.do?billId=${evt.bill_id}&ageFrom=22&ageTo=22`}
+                      onClick={(e) => e.stopPropagation()}
                       target="_blank"
                       rel="noopener noreferrer"
-                      title="국회 의안정보시스템 확인"
+                      title="국회 의안정보시스템 새창 열기"
                       className="text-slate-300 hover:text-indigo-600 p-1 shrink-0 transition-colors"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
@@ -222,7 +232,7 @@ export default function LegislativeLiveRadar({ data }: LegislativeLiveRadarProps
         </div>
 
         <div className="pt-2 mt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-          <span>열린국회정보 Open API 동기화 타임라인</span>
+          <span>* 카드 클릭 시 의원 상세 성적표 열람 / 아이콘(↗) 클릭 시 법안 원문 열람</span>
           <span>최신 15건 표시</span>
         </div>
       </div>

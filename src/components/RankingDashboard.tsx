@@ -2,8 +2,10 @@
 
 import { useState, useMemo } from "react";
 import { BillRankingRow } from "@/types/ranking";
+import { WeeklyRadarStats } from "@/types/activity";
 import AssembDetailDrawer from "@/components/AssembDetailDrawer";
 import CompareModal from "@/components/CompareModal";
+import LegislativeLiveRadar from "@/components/LegislativeLiveRadar";
 import {
   Search,
   Filter,
@@ -22,6 +24,7 @@ import {
 
 interface RankingDashboardProps {
   initialData: BillRankingRow[];
+  weeklyRadar?: WeeklyRadarStats;
 }
 
 const PARTY_COLORS: Record<string, string> = {
@@ -71,7 +74,7 @@ function getLegislativeTag(row: BillRankingRow) {
   return null;
 }
 
-export default function RankingDashboard({ initialData }: RankingDashboardProps) {
+export default function RankingDashboard({ initialData, weeklyRadar }: RankingDashboardProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedParty, setSelectedParty] = useState("ALL");
   const [selectedCmit, setSelectedCmit] = useState("ALL");
@@ -81,9 +84,16 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [selectedAssemb, setSelectedAssemb] = useState<BillRankingRow | null>(null);
 
-  // 1:1 맞비교 선택 상태 관리
   const [compareList, setCompareList] = useState<BillRankingRow[]>([]);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
+
+  // 레이더 또는 피드에서 의원 클릭 시 드로어 오픈 핸들러
+  const handleSelectAssembById = (assembId: string) => {
+    const target = initialData.find((m) => m.assemb_id === assembId);
+    if (target) {
+      setSelectedAssemb(target);
+    }
+  };
 
   const partyList = useMemo(() => {
     const set = new Set(initialData.map((d) => d.pltprt_nm).filter(Boolean));
@@ -115,7 +125,6 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
     }
   };
 
-  // 맞비교 선택 토글 함수
   const toggleCompare = (member: BillRankingRow, e?: React.MouseEvent) => {
     e?.stopPropagation();
     setCompareList((prev) => {
@@ -124,7 +133,6 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
         return prev.filter((m) => m.assemb_id !== member.assemb_id);
       }
       if (prev.length >= 2) {
-        // 이미 2명이면 마지막 한 명을 교체
         return [prev[1], member];
       }
       return [...prev, member];
@@ -209,7 +217,15 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
 
   return (
     <div className="space-y-6">
-      {/* 1. 상단 컨트롤 패널 */}
+      {/* 0. 최근 입법 레이더 & 실시간 파이프라인 피드 위젯 (상태 연동 탑재) */}
+      {weeklyRadar && (
+        <LegislativeLiveRadar
+          data={weeklyRadar}
+          onSelectAssemb={handleSelectAssembById}
+        />
+      )}
+
+      {/* 1. 컨트롤 패널 */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="relative flex-1 max-w-md">
@@ -325,16 +341,13 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
         </span>
       </div>
 
-      {/* 3. 랭킹 테이블 (VS 대결 버튼 탑재) */}
+      {/* 3. 랭킹 테이블 */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600">
             <thead className="bg-slate-100 text-slate-700 font-semibold text-xs tracking-wider border-b border-slate-200 select-none whitespace-nowrap">
               <tr>
-                {/* VS 맞비교 선택 컬럼 */}
                 <th className="py-3 px-2 text-center w-12">비교</th>
-
-                {/* 1. 순위 */}
                 <th
                   onClick={() => handleSort("rnkg")}
                   className="py-3 px-2.5 text-center w-14 cursor-pointer hover:bg-slate-200/70 transition-colors group"
@@ -344,8 +357,6 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
                     {renderSortIcon("rnkg")}
                   </div>
                 </th>
-
-                {/* 2. 종합점수 */}
                 <th
                   onClick={() => handleSort("score")}
                   className="py-3 px-2.5 cursor-pointer hover:bg-slate-200/70 transition-colors group text-right w-20"
@@ -355,8 +366,6 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
                     {renderSortIcon("score")}
                   </div>
                 </th>
-
-                {/* 3. 의원명 */}
                 <th
                   onClick={() => handleSort("assemb_nm")}
                   className="py-3 px-3.5 cursor-pointer hover:bg-slate-200/70 transition-colors group min-w-[280px]"
@@ -366,14 +375,8 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
                     {renderSortIcon("assemb_nm")}
                   </div>
                 </th>
-
-                {/* 4. 정당 */}
                 <th className="py-3 px-2 text-center w-24">정당</th>
-
-                {/* 5. 지역구 */}
                 <th className="py-3 px-3 w-36">지역구</th>
-
-                {/* 6. 대표발의 */}
                 <th
                   onClick={() => handleSort("ttl_motn_cnt")}
                   className="py-3 px-2.5 text-right cursor-pointer hover:bg-slate-200/70 transition-colors group w-24"
@@ -383,8 +386,6 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
                     {renderSortIcon("ttl_motn_cnt")}
                   </div>
                 </th>
-
-                {/* 7. 상임위 집중도 */}
                 <th
                   onClick={() => handleSort("own_cmit_motn_rate")}
                   className="py-3 px-2.5 text-right cursor-pointer hover:bg-slate-200/70 transition-colors group w-24"
@@ -394,8 +395,6 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
                     {renderSortIcon("own_cmit_motn_rate")}
                   </div>
                 </th>
-
-                {/* 8. 상정률 */}
                 <th
                   onClick={() => handleSort("cmt_present_rate")}
                   className="py-3 px-2.5 text-right cursor-pointer hover:bg-slate-200/70 transition-colors group w-20"
@@ -405,8 +404,6 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
                     {renderSortIcon("cmt_present_rate")}
                   </div>
                 </th>
-
-                {/* 9. 심사소요일 */}
                 <th
                   onClick={() => handleSort("avg_cmt_days")}
                   className="py-3 px-2.5 text-right cursor-pointer hover:bg-slate-200/70 transition-colors group w-24"
@@ -416,8 +413,6 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
                     {renderSortIcon("avg_cmt_days")}
                   </div>
                 </th>
-
-                {/* 10. 본회의 가결 */}
                 <th
                   onClick={() => handleSort("aprv_cnt")}
                   className="py-3 px-3 text-right cursor-pointer hover:bg-slate-200/70 transition-colors group w-24"
@@ -447,7 +442,6 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
                         isSelectedForCompare ? "bg-indigo-50/60" : isDeferred ? "bg-slate-50/40 opacity-75" : ""
                       }`}
                     >
-                      {/* VS 선택 버튼 */}
                       <td className="py-3.5 px-2 text-center" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={(e) => toggleCompare(row, e)}
@@ -462,7 +456,6 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
                         </button>
                       </td>
 
-                      {/* 순위 */}
                       <td className="py-3.5 px-2.5 text-center font-bold text-slate-900 whitespace-nowrap">
                         {isDeferred ? (
                           <span
@@ -480,7 +473,6 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
                         )}
                       </td>
 
-                      {/* 종합점수 */}
                       <td className="py-3.5 px-2.5 text-right whitespace-nowrap">
                         {isDeferred || row.score === null ? (
                           <span className="text-slate-400 text-xs font-mono">-</span>
@@ -493,7 +485,6 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
                         )}
                       </td>
 
-                      {/* 의원명 + 상임위 */}
                       <td className="py-3.5 px-3.5">
                         <div className="flex flex-col">
                           <div className="inline-flex items-center gap-1.5 whitespace-nowrap">
@@ -522,7 +513,6 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
                         </div>
                       </td>
 
-                      {/* 정당 배지 */}
                       <td className="py-3.5 px-2 text-center whitespace-nowrap">
                         <span
                           className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold border whitespace-nowrap ${
@@ -533,12 +523,10 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
                         </span>
                       </td>
 
-                      {/* 지역구 */}
                       <td className="py-3.5 px-3 text-slate-600 text-xs whitespace-nowrap truncate max-w-[144px]" title={row.rgn_nm || "비례대표"}>
                         {row.rgn_nm || "비례대표"}
                       </td>
 
-                      {/* 대표발의 + 월평균 페이스 */}
                       <td className="py-3.5 px-2.5 text-right font-mono whitespace-nowrap">
                         <div className="flex flex-col items-end">
                           {motnCnt === 0 ? (
@@ -560,7 +548,6 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
                         </div>
                       </td>
 
-                      {/* 상임위 집중도 */}
                       <td className="py-3.5 px-2.5 text-right whitespace-nowrap">
                         <div className="flex flex-col items-end">
                           <span className="font-semibold text-blue-700 font-mono">
@@ -572,7 +559,6 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
                         </div>
                       </td>
 
-                      {/* 상정률 */}
                       <td className="py-3.5 px-2.5 text-right whitespace-nowrap">
                         <div className="flex flex-col items-end">
                           <span className="font-semibold text-slate-800 font-mono">
@@ -584,7 +570,6 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
                         </div>
                       </td>
 
-                      {/* 심사소요일 */}
                       <td className="py-3.5 px-2.5 text-right font-mono whitespace-nowrap">
                         {Number(row.avg_cmt_days) > 0 ? (
                           <span className="inline-flex items-center gap-0.5 text-slate-700 text-xs">
@@ -596,7 +581,6 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
                         )}
                       </td>
 
-                      {/* 본회의 가결 (가결수 + 가결률) */}
                       <td className="py-3.5 px-3 text-right whitespace-nowrap">
                         <div className="flex flex-col items-end">
                           <span className="font-bold text-emerald-600 font-mono">
@@ -622,7 +606,7 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
         </div>
       </div>
 
-      {/* 4. 하단 플로팅 맞비교 바 (1명 이상 선택 시 등장) */}
+      {/* 4. 하단 플로팅 맞비교 바 */}
       {compareList.length > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-4 animate-in fade-in slide-in-from-bottom-3 duration-200">
           <div className="flex items-center gap-2">
@@ -680,7 +664,6 @@ export default function RankingDashboard({ initialData }: RankingDashboardProps)
         assemb={selectedAssemb}
         onClose={() => setSelectedAssemb(null)}
         onOpenCompareWith={(m) => {
-          // Drawer에서 '다른 의원과 1:1 비교' 클릭 시 첫 번째 슬롯으로 등록
           const secondMember = initialData.find((cand) => cand.assemb_id !== m.assemb_id) || m;
           setCompareList([m, secondMember]);
           setSelectedAssemb(null);
