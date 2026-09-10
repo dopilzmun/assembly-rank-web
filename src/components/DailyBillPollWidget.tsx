@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Vote, CheckCircle2, ThumbsUp, ThumbsDown, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { Vote, CheckCircle2, ThumbsUp, ThumbsDown, ShieldCheck, History } from "lucide-react";
 
 interface PollData {
   poll_id: number;
@@ -94,7 +95,7 @@ export default function DailyBillPollWidget() {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 flex flex-col justify-between space-y-4 h-full">
       
-      {/* 1. 헤더 (고정) */}
+      {/* 1. 헤더 */}
       <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
         <div className="flex items-center gap-2">
           <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
@@ -115,12 +116,22 @@ export default function DailyBillPollWidget() {
             </span>
           </div>
         </div>
-        <span className="text-xs sm:text-sm font-mono text-slate-500">
-          총 <strong className="text-slate-800 font-bold">{poll.total_cnt.toLocaleString()}명</strong>
-        </span>
+
+        <div className="flex items-center gap-2.5">
+          <span className="text-xs sm:text-sm font-mono text-slate-500">
+            총 <strong className="text-slate-800 font-bold">{poll.total_cnt.toLocaleString()}명</strong>
+          </span>
+          <Link
+            href="/poll/archive"
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 transition-colors"
+          >
+            <History className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">지난 투표</span>
+          </Link>
+        </div>
       </div>
 
-      {/* 2. 법안 안건 타이틀 및 설명 (중간 영역) */}
+      {/* 2. 법안 안건 타이틀 및 설명 */}
       <div className="space-y-2 flex-1 flex flex-col justify-center">
         <h4 className="font-bold text-base sm:text-lg text-slate-900 leading-snug">
           {poll.title}
@@ -130,7 +141,7 @@ export default function DailyBillPollWidget() {
         </p>
       </div>
 
-      {/* 3. 투표 선택지 or 결과 게이지 바 (하단 고정) */}
+      {/* 3. 투표 선택지 or 결과 게이지 바 */}
       <div className="shrink-0 pt-1">
         {userChoice ? (
           <div className="space-y-2.5 animate-in fade-in duration-200">

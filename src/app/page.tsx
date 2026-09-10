@@ -5,6 +5,7 @@ import { RowDataPacket } from "mysql2";
 import HomeHeroSearch from "@/components/HomeHeroSearch";
 import DailyBillPollWidget from "@/components/DailyBillPollWidget";
 import MyDistrictWidget from "@/components/MyDistrictWidget";
+import CitizenReactionWidget from "@/components/CitizenReactionWidget";
 import { BillRankingRow } from "@/types/ranking";
 import {
   Trophy,
@@ -195,7 +196,7 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* 2. [수정] 오늘의 투표 & 우리 동네 의원 위젯 (좌우 동일 높이 확장 items-stretch) */}
+        {/* 2. 오늘의 투표 & 우리 동네 의원 위젯 (동일 높이) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
           <div className="lg:col-span-7 flex flex-col h-full">
             <DailyBillPollWidget />
@@ -205,7 +206,10 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* 3. 미니 거시 지표 요약 바 */}
+        {/* 3. [신규] 2단계: 주간 시민 반응 레이더 (응원/감시 스탬프 TOP 3) */}
+        <CitizenReactionWidget allMembers={data.allMembers} />
+
+        {/* 4. 미니 거시 지표 요약 바 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm font-mono text-center">
           <div className="p-3 bg-slate-50/80 rounded-xl">
             <span className="text-xs sm:text-sm text-slate-500 block font-sans font-medium mb-0.5">등록 의원</span>
@@ -233,9 +237,8 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* 4. 3대 큐레이션 하이라이트 */}
+        {/* 5. 3대 큐레이션 하이라이트 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          
           {/* 🏆 랭킹 픽 */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 flex flex-col justify-between space-y-4">
             <div className="space-y-3.5">
@@ -380,10 +383,9 @@ export default async function HomePage() {
               <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
-
         </div>
 
-        {/* 5. 평가 기준 안내 */}
+        {/* 6. 평가 기준 배너 */}
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="space-y-1.5">
             <h4 className="font-bold text-base sm:text-lg flex items-center gap-2">
