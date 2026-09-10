@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { BillRankingRow } from "@/types/ranking";
 import { AssembBillListResponse } from "@/types/bill";
 import RadarChart from "@/components/RadarChart";
@@ -20,6 +20,7 @@ import {
   Sparkles,
   Share2,
   Check,
+  ChevronDown,
 } from "lucide-react";
 
 interface AssembDetailDrawerProps {
@@ -37,9 +38,27 @@ export default function AssembDetailDrawer({
   const [billData, setBillData] = useState<AssembBillListResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isCmitExpanded, setIsCmitExpanded] = useState(false);
+
+  // 상임위 목록 정렬: '정규 상임위원회'를 우선 노출하고 '특별위원회'를 후순위로 정렬
+  const committees = useMemo(() => {
+    if (!assemb?.cmit_nm) return [];
+    return assemb.cmit_nm
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean)
+      .sort((a, b) => {
+        const aIsSpecial = a.includes("특별위원회");
+        const bIsSpecial = b.includes("특별위원회");
+        if (aIsSpecial && !bIsSpecial) return 1;
+        if (!aIsSpecial && bIsSpecial) return -1;
+        return 0;
+      });
+  }, [assemb?.cmit_nm]);
 
   useEffect(() => {
     if (!assemb) return;
+    setIsCmitExpanded(false);
 
     const fetchBills = async () => {
       setIsLoading(true);
@@ -116,7 +135,7 @@ export default function AssembDetailDrawer({
         <div className="w-screen max-w-full md:max-w-xl bg-white shadow-2xl flex flex-col h-full">
           
           {/* 1. 드로어 헤더 */}
-          <div className="p-4 sm:p-6 border-b border-slate-200 bg-slate-50/50 space-y-3 sm:space-y-4 shrink-0 overflow-y-auto max-h-[48vh] md:max-h-none">
+          <div className="p-4 sm:p-6 border-b border-slate-200 bg-slate-50/50 space-y-3 sm:space-y-4 shrink-0 overflow-y-auto max-h-[50vh] md:max-h-none">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 truncate">
                 <span className="text-lg sm:text-xl font-bold text-slate-900 whitespace-nowrap">{assemb.assemb_nm}</span>
@@ -130,7 +149,7 @@ export default function AssembDetailDrawer({
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   onClick={handleShare}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border bg-white border-slate-200 text-slate-600 hover:text-indigo-600 shadow-sm"
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border bg-white border-slate-200 text-slate-600 hover:text-indigo-600 shadow-sm transition-colors cursor-pointer"
                 >
                   {copied ? (
                     <>
@@ -147,23 +166,81 @@ export default function AssembDetailDrawer({
 
                 <button
                   onClick={onClose}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            {/* 상임위 & 등원일 */}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-              <div className="flex items-center gap-1.5 truncate">
-                <Layers className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                <span className="shrink-0">상임위:</span>
-                <strong className="text-slate-800 font-medium truncate max-w-[200px]">
-                  {assemb.cmit_nm || "미배정"}
-                </strong>
+            {/* 상임위원회 알약 뱃지 + 카운트 태그 토글 영역 */}
+            <div className="space-y-1.5 text-xs text-slate-500">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Layers className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                  <span className="shrink-0 text-slate-500 font-medium">소속:</span>
+                  
+                  {committees.length > 0 ? (
+                    <>
+                      <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-semibold text-[11px] border border-indigo-100 truncate max-w-[200px] sm:max-w-[280px]">
+                        {committees[0]}
+                      </span>
+
+                      {committees.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setIsCmitExpanded((prev) => !prev)}
+                          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-[10px] transition-colors cursor-pointer"
+                        >
+                          <span>{isCmitExpanded ? "접기" : `+${committees.length - 1}개`}</span>
+                          <ChevronDown
+                            className={`w-3 h-3 transition-transform duration-200 ${
+                              isCmitExpanded ? "rotate-180" : ""
+                            }`}
+                          />
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-slate-400">상임위 미배정</span>
+                  )}
+                </div>
+
+                <div className="text-slate-400 font-mono text-[11px] shrink-0">
+                  등원일: {assemb.term_start_dd}
+                </div>
               </div>
-              <div className="text-slate-400 font-mono text-[11px] shrink-0">등원일: {assemb.term_start_dd}</div>
+
+              {/* 토글 활성화 시 나타나는 전체 위원회 인라인 목록 박스 */}
+              {isCmitExpanded && committees.length > 1 && (
+                <div className="p-3 bg-white rounded-xl border border-slate-200/90 shadow-xs space-y-2 text-[11px] animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold border-b border-slate-100 pb-1.5">
+                    <span>전체 소속 위원회 ({committees.length}개)</span>
+                    <span>클릭하여 접기 가능</span>
+                  </div>
+                  <ul className="space-y-1.5 pt-0.5">
+                    {committees.map((cmit, idx) => {
+                      const isSpecial = cmit.includes("특별위원회");
+                      return (
+                        <li key={idx} className="flex items-start gap-1.5 leading-relaxed">
+                          <span
+                            className={`px-1.5 py-0.2 rounded text-[9px] font-bold shrink-0 mt-0.5 border ${
+                              isSpecial
+                                ? "bg-amber-50 text-amber-800 border-amber-200"
+                                : "bg-indigo-50 text-indigo-700 border-indigo-200"
+                            }`}
+                          >
+                            {isSpecial ? "특별위" : "상임위"}
+                          </span>
+                          <span className="text-slate-800 font-medium break-keep">
+                            {cmit}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
             </div>
 
             {/* 유예 및 직무 특수 배너 */}
@@ -187,7 +264,7 @@ export default function AssembDetailDrawer({
               </div>
             ) : null}
 
-            {/* 2단계 신규: 의원 시민 반응 스탬프 컴포넌트 탑재 */}
+            {/* 시민 반응 스탬프 컴포넌트 */}
             <MemberEmotionStamps assembId={assemb.assemb_id} assembNm={assemb.assemb_nm} />
 
             {/* 핵심 지표 5분할 칩 */}
@@ -241,10 +318,10 @@ export default function AssembDetailDrawer({
           <div className="flex border-b border-slate-200 px-4 sm:px-6 bg-white shrink-0 overflow-x-auto">
             <button
               onClick={() => setActiveTab("aprv")}
-              className={`py-3 px-3 text-xs font-semibold border-b-2 flex items-center gap-1.5 whitespace-nowrap transition-colors ${
+              className={`py-3 px-3 text-xs font-semibold border-b-2 flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer ${
                 activeTab === "aprv"
                   ? "border-emerald-600 text-emerald-700"
-                  : "border-transparent text-slate-500"
+                  : "border-transparent text-slate-500 hover:text-slate-800"
               }`}
             >
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -256,10 +333,10 @@ export default function AssembDetailDrawer({
 
             <button
               onClick={() => setActiveTab("pending")}
-              className={`py-3 px-3 text-xs font-semibold border-b-2 flex items-center gap-1.5 whitespace-nowrap transition-colors ${
+              className={`py-3 px-3 text-xs font-semibold border-b-2 flex items-center gap-1.5 whitespace-nowrap transition-colors cursor-pointer ${
                 activeTab === "pending"
                   ? "border-indigo-600 text-indigo-700"
-                  : "border-transparent text-slate-500"
+                  : "border-transparent text-slate-500 hover:text-slate-800"
               }`}
             >
               <Clock className="w-3.5 h-3.5 text-indigo-600" />
@@ -305,7 +382,7 @@ export default function AssembDetailDrawer({
                       href={`http://likms.assembly.go.kr/bill/billDetail.do?billId=${bill.bill_id}&ageFrom=22&ageTo=22`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-slate-400 hover:text-indigo-600 p-1"
+                      className="text-slate-400 hover:text-indigo-600 p-1 transition-colors"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                     </a>
@@ -361,7 +438,7 @@ export default function AssembDetailDrawer({
             {onOpenCompareWith ? (
               <button
                 onClick={() => onOpenCompareWith(assemb)}
-                className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg font-semibold flex items-center gap-1"
+                className="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg font-semibold flex items-center gap-1 hover:bg-indigo-100 transition-colors cursor-pointer"
               >
                 ⚔️ 1:1 맞비교
               </button>
@@ -370,7 +447,7 @@ export default function AssembDetailDrawer({
             )}
             <button
               onClick={onClose}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium"
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors cursor-pointer"
             >
               닫기
             </button>
