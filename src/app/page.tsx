@@ -195,17 +195,17 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* 2. 오늘의 투표 & 우리 동네 의원 위젯 (2열 그리드) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          <div className="lg:col-span-7">
+        {/* 2. [수정] 오늘의 투표 & 우리 동네 의원 위젯 (좌우 동일 높이 확장 items-stretch) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+          <div className="lg:col-span-7 flex flex-col h-full">
             <DailyBillPollWidget />
           </div>
-          <div className="lg:col-span-5">
+          <div className="lg:col-span-5 flex flex-col h-full">
             <MyDistrictWidget allMembers={data.allMembers} />
           </div>
         </div>
 
-        {/* 3. 미니 거시 지표 요약 바 (폰트 18~20px 확대) */}
+        {/* 3. 미니 거시 지표 요약 바 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm font-mono text-center">
           <div className="p-3 bg-slate-50/80 rounded-xl">
             <span className="text-xs sm:text-sm text-slate-500 block font-sans font-medium mb-0.5">등록 의원</span>
@@ -233,7 +233,7 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* 4. 3대 큐레이션 하이라이트 (14~16px 폰트 표준화) */}
+        {/* 4. 3대 큐레이션 하이라이트 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           
           {/* 🏆 랭킹 픽 */}
