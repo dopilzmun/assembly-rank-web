@@ -9,7 +9,6 @@ import { BillRankingRow } from "@/types/ranking";
 import {
   Trophy,
   Layers,
-  ArrowRight,
   CheckCircle2,
   Sparkles,
   ChevronRight,
@@ -123,11 +122,33 @@ async function getHomeBriefingData(): Promise<HomeBriefingData> {
     const fastest = cmitRows[0] ? { name: cmitRows[0].curr_cmit_nm, days: Number(cmitRows[0].avg_days) } : null;
     const slowest = cmitRows.length > 0 ? { name: cmitRows[cmitRows.length - 1].curr_cmit_nm, days: Number(cmitRows[cmitRows.length - 1].avg_days) } : null;
 
-    // 내 동네 위젯 매칭용 전수 의원 약식 데이터
+    // 상세 Drawer 렌더링에 필요한 전수 컬럼 조회
     const [memberRows] = await pool.query<RowDataPacket[]>(
-      `SELECT assemb_id, assemb_nm, pltprt_nm, rgn_nm, cmit_nm, score, rnkg, aprv_cnt, ttl_motn_cnt
-       FROM vw_bill_efct_rnkg_01
-       WHERE age = ?;`,
+      `SELECT 
+        assemb_id,
+        age,
+        assemb_nm,
+        pltprt_nm,
+        rgn_nm,
+        cmit_nm,
+        DATE_FORMAT(term_start_dd, '%Y-%m-%d') AS term_start_dd,
+        is_deferred,
+        monthly_pace,
+        ttl_motn_cnt,
+        pure_aprv_cnt,
+        alt_aprv_cnt,
+        aprv_cnt,
+        dss_cnt,
+        aprv_rate,
+        cmt_present_cnt,
+        cmt_present_rate,
+        avg_cmt_days,
+        own_cmit_motn_cnt,
+        own_cmit_motn_rate,
+        score,
+        rnkg
+      FROM vw_bill_efct_rnkg_01
+      WHERE age = ?;`,
       [CURRENT_AGE]
     );
 
@@ -190,7 +211,7 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* 2. [1단계] 오늘의 쟁점 법안 1초 찬반 투표 & [2단계] 내 동네 의원 위젯 (2열 그리드) */}
+        {/* 2. [1단계] 쟁점 법안 1초 투표 (화이트/뮤트 톤) & [2단계] 우리 동네 의원 위젯 */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           <div className="lg:col-span-7">
             <DailyBillPollWidget />
@@ -200,7 +221,7 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* 3. 미니 거시 지표 요약 바 (한 줄 팩트체크) */}
+        {/* 3. 미니 거시 지표 요약 바 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3 bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm font-mono text-center">
           <div className="p-2 bg-slate-50 rounded-xl">
             <span className="text-[10px] text-slate-400 block font-sans">등록 의원</span>
@@ -228,7 +249,7 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* 4. 3대 큐레이션 하이라이트 (중복 0% 큐레이션) */}
+        {/* 4. 3대 큐레이션 하이라이트 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
           
           {/* 🏆 랭킹 픽 */}
