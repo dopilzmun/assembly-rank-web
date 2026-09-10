@@ -10,7 +10,6 @@ export async function GET(
   { params }: { params: Promise<{ assembId: string }> }
 ) {
   try {
-    // Next.js 15+ 비동기 params 언랩
     const { assembId } = await params;
 
     // 1. 해당 의원의 소속 상임위 확인
@@ -46,9 +45,13 @@ export async function GET(
       const billItem: BillDetailRow = {
         bill_id: r.bill_id,
         bill_nm: r.bill_nm,
+        repve_assemb_id: assembId,
+        ttswhn_pltprt_nm: null,
         curr_cmit_nm: r.curr_cmit_nm || "",
         motn_dd: r.motn_dd || "",
         cmt_present_dd: r.cmt_present_dd || null,
+        cmt_proc_dd: null,
+        cmt_proc_stat: null,
         process_stat: r.process_stat || null,
         process_dd: r.process_dd || null,
         is_own_cmit: isOwnCmit,
