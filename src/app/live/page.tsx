@@ -134,7 +134,6 @@ async function getWeeklyRadarData(): Promise<WeeklyRadarStats> {
   }
 }
 
-// 라이브 탭 전용으로 의원 기본 마스터 및 랭킹 스코어 데이터를 일괄 로드
 async function getAllMembersForLive(): Promise<BillRankingRow[]> {
   try {
     const [rows] = await pool.query<RowDataPacket[]>(
@@ -167,19 +166,19 @@ export default async function LivePage() {
 
   return (
     <main className="py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
         
         {/* 페이지 슬림 헤더 */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-sm shrink-0">
+            <div className="p-2.5 bg-indigo-600 rounded-2xl text-white shadow-sm shrink-0">
               <Zap className="w-5 h-5" />
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
                 실시간 입법 파이프라인 & 뉴스룸
               </h1>
-              <p className="text-slate-500 text-xs mt-0.5">
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
                 최근 2주간 국회 법안 발의·상정·가결 트렌드 및 타임라인 실시간 모니터링
               </p>
             </div>
@@ -190,52 +189,52 @@ export default async function LivePage() {
           </span>
         </div>
 
-        {/* 입법 파이프라인 효율 배너 */}
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3">
+        {/* 입법 파이프라인 효율 배너 (폰트 18~20px 확대) */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-indigo-600" />
-              <h3 className="font-bold text-xs sm:text-sm text-slate-900">
+              <Activity className="w-5 h-5 text-indigo-600" />
+              <h3 className="font-bold text-sm sm:text-base text-slate-900">
                 최근 2주간 입법 파이프라인 처리 효율
               </h3>
             </div>
-            <span className="text-[11px] font-mono text-slate-400">
+            <span className="text-xs font-mono text-slate-400">
               기준: {weeklyRadar.period_label}
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono">
-            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center justify-between">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 font-mono">
+            <div className="bg-slate-50/90 p-3.5 rounded-xl border border-slate-100 flex items-center justify-between">
               <div>
-                <span className="text-[10px] text-slate-400 block font-sans">신규 접수 (발의)</span>
-                <strong className="text-base font-black text-slate-900">{weeklyRadar.recent_motn_total}건</strong>
+                <span className="text-xs sm:text-sm text-slate-500 block font-sans font-medium mb-0.5">신규 접수 (발의)</span>
+                <strong className="text-lg sm:text-2xl font-black text-slate-900">{weeklyRadar.recent_motn_total}건</strong>
               </div>
-              <FileText className="w-5 h-5 text-slate-400" />
+              <FileText className="w-6 h-6 text-slate-400" />
             </div>
 
-            <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100 flex items-center justify-between">
+            <div className="bg-indigo-50/60 p-3.5 rounded-xl border border-indigo-100 flex items-center justify-between">
               <div>
-                <span className="text-[10px] text-indigo-600 block font-sans">상임위 심사 착수 (상정)</span>
-                <strong className="text-base font-black text-indigo-700">
-                  {weeklyRadar.recent_present_total}건 <span className="text-xs font-normal">({presentRate}%)</span>
+                <span className="text-xs sm:text-sm text-indigo-600 block font-sans font-medium mb-0.5">상임위 심사 착수 (상정)</span>
+                <strong className="text-lg sm:text-2xl font-black text-indigo-700">
+                  {weeklyRadar.recent_present_total}건 <span className="text-sm font-normal">({presentRate}%)</span>
                 </strong>
               </div>
-              <Clock className="w-5 h-5 text-indigo-500" />
+              <Clock className="w-6 h-6 text-indigo-500" />
             </div>
 
-            <div className="bg-emerald-50/50 p-3 rounded-xl border border-emerald-100 flex items-center justify-between">
+            <div className="bg-emerald-50/60 p-3.5 rounded-xl border border-emerald-100 flex items-center justify-between">
               <div>
-                <span className="text-[10px] text-emerald-700 block font-sans">본회의 최종 통과 (가결)</span>
-                <strong className="text-base font-black text-emerald-700">
-                  {weeklyRadar.recent_aprv_total}건 <span className="text-xs font-normal">({aprvRate}%)</span>
+                <span className="text-xs sm:text-sm text-emerald-700 block font-sans font-medium mb-0.5">본회의 최종 통과 (가결)</span>
+                <strong className="text-lg sm:text-2xl font-black text-emerald-700">
+                  {weeklyRadar.recent_aprv_total}건 <span className="text-sm font-normal">({aprvRate}%)</span>
                 </strong>
               </div>
-              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              <CheckCircle2 className="w-6 h-6 text-emerald-600" />
             </div>
           </div>
         </div>
 
-        {/* 라이브 상호작용 클라이언트 컴포넌트 (성적표 Drawer 내장) */}
+        {/* 레이더 & 실시간 타임라인 피드 */}
         <LiveInteractiveSection data={weeklyRadar} allMembers={allMembers} />
 
       </div>

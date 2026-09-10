@@ -72,63 +72,63 @@ export default function DailyBillPollWidget() {
   if (!poll) return null;
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 flex flex-col justify-between space-y-3.5">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 flex flex-col justify-between space-y-4">
       
       {/* 1. 헤더 */}
-      <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100">
-            <Vote className="w-4 h-4" />
+          <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+            <Vote className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div>
-            <h3 className="font-bold text-xs sm:text-sm text-slate-900">
+            <h3 className="font-bold text-sm sm:text-base text-slate-900">
               오늘의 쟁점 법안 1초 투표
             </h3>
-            <span className="text-[11px] text-slate-400">
+            <span className="text-xs text-slate-400">
               로그인 없이 바로 참여하는 시민 여론
             </span>
           </div>
         </div>
-        <span className="text-[11px] font-mono text-slate-400">
-          총 <strong className="text-slate-700 font-semibold">{poll.total_cnt.toLocaleString()}명</strong> 참여
+        <span className="text-xs sm:text-sm font-mono text-slate-500">
+          총 <strong className="text-slate-800 font-bold">{poll.total_cnt.toLocaleString()}명</strong>
         </span>
       </div>
 
-      {/* 2. 법안 안건 타이틀 및 설명 박스 */}
-      <div className="space-y-1.5">
-        <h4 className="font-bold text-sm sm:text-base text-slate-900 leading-snug">
+      {/* 2. 법안 안건 타이틀 및 설명 */}
+      <div className="space-y-2">
+        <h4 className="font-bold text-base sm:text-lg text-slate-900 leading-snug">
           {poll.title}
         </h4>
-        <p className="text-xs text-slate-500 leading-relaxed break-keep bg-slate-50/80 p-3 rounded-xl border border-slate-100">
+        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed break-keep bg-slate-50/90 p-3.5 rounded-xl border border-slate-100 font-normal">
           {poll.summary}
         </p>
       </div>
 
       {/* 3. 투표 선택지 or 결과 게이지 바 */}
       {userChoice ? (
-        <div className="space-y-2 pt-1 animate-in fade-in duration-200">
-          <div className="flex items-center justify-between text-xs font-mono">
+        <div className="space-y-2.5 pt-1 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between text-xs sm:text-sm font-mono">
             <span className="text-emerald-700 font-bold flex items-center gap-1.5">
-              <ThumbsUp className="w-3.5 h-3.5" /> 찬성 {poll.pro_rate}%
-              <span className="text-[11px] font-normal text-slate-400">({poll.pro_cnt.toLocaleString()}명)</span>
+              <ThumbsUp className="w-4 h-4" /> 찬성 {poll.pro_rate}%
+              <span className="text-xs font-normal text-slate-500">({poll.pro_cnt.toLocaleString()}명)</span>
               {userChoice === "pro" && (
-                <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-sans font-semibold">
+                <span className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-sans font-bold">
                   내 투표
                 </span>
               )}
             </span>
             <span className="text-rose-700 font-bold flex items-center gap-1.5">
               {userChoice === "con" && (
-                <span className="text-[10px] bg-rose-100 text-rose-800 px-1.5 py-0.2 rounded font-sans font-semibold">
+                <span className="text-xs bg-rose-100 text-rose-800 px-2 py-0.5 rounded font-sans font-bold">
                   내 투표
                 </span>
               )}
-              <span className="text-[11px] font-normal text-slate-400">({poll.con_cnt.toLocaleString()}명)</span>
-              반대 {poll.con_rate}% <ThumbsDown className="w-3.5 h-3.5" />
+              <span className="text-xs font-normal text-slate-500">({poll.con_cnt.toLocaleString()}명)</span>
+              반대 {poll.con_rate}% <ThumbsDown className="w-4 h-4" />
             </span>
           </div>
 
-          <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden flex">
+          <div className="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden flex">
             <div
               style={{ width: `${poll.pro_rate}%` }}
               className="bg-emerald-500 h-full transition-all duration-700"
@@ -139,17 +139,17 @@ export default function DailyBillPollWidget() {
             />
           </div>
 
-          <div className="flex items-center justify-center gap-1 text-[11px] text-slate-400 pt-0.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+          <div className="flex items-center justify-center gap-1 text-xs text-slate-500 pt-1">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             <span>투표가 집계되었습니다. 매일 자정 새로운 쟁점 법안이 등록됩니다.</span>
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-2.5 pt-0.5">
+        <div className="grid grid-cols-2 gap-3 pt-1">
           <button
             onClick={() => handleVote("pro")}
             disabled={isSubmitting}
-            className="flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-50 hover:bg-emerald-100/80 active:scale-[0.99] border border-emerald-200/80 rounded-xl text-xs font-bold text-emerald-800 transition-all shadow-xs cursor-pointer"
+            className="flex items-center justify-center gap-2 py-3 px-4 bg-emerald-50 hover:bg-emerald-100/80 active:scale-[0.99] border border-emerald-200 rounded-xl text-sm font-bold text-emerald-800 transition-all shadow-xs cursor-pointer min-h-[44px]"
           >
             <ThumbsUp className="w-4 h-4 text-emerald-600" />
             <span>찬성합니다</span>
@@ -157,7 +157,7 @@ export default function DailyBillPollWidget() {
           <button
             onClick={() => handleVote("con")}
             disabled={isSubmitting}
-            className="flex items-center justify-center gap-2 py-2.5 px-4 bg-rose-50 hover:bg-rose-100/80 active:scale-[0.99] border border-rose-200/80 rounded-xl text-xs font-bold text-rose-800 transition-all shadow-xs cursor-pointer"
+            className="flex items-center justify-center gap-2 py-3 px-4 bg-rose-50 hover:bg-rose-100/80 active:scale-[0.99] border border-rose-200 rounded-xl text-sm font-bold text-rose-800 transition-all shadow-xs cursor-pointer min-h-[44px]"
           >
             <ThumbsDown className="w-4 h-4 text-rose-600" />
             <span>반대합니다</span>
