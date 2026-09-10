@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { BillRankingRow } from "@/types/ranking";
-import { BillDetailRow, AssembBillListResponse } from "@/types/bill";
+import { AssembBillListResponse } from "@/types/bill";
 import RadarChart from "@/components/RadarChart";
 import { calculateRadarStats } from "@/components/CompareModal";
+import MemberEmotionStamps from "@/components/MemberEmotionStamps";
 import {
   X,
   ExternalLink,
@@ -82,15 +83,9 @@ export default function AssembDetailDrawer({
 
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: shareTitle,
-          text: shareText,
-          url: shareUrl,
-        });
+        await navigator.share({ title: shareTitle, text: shareText, url: shareUrl });
         return;
-      } catch (err) {
-        // 취소 시 무시
-      }
+      } catch {}
     }
 
     try {
@@ -121,7 +116,7 @@ export default function AssembDetailDrawer({
         <div className="w-screen max-w-full md:max-w-xl bg-white shadow-2xl flex flex-col h-full">
           
           {/* 1. 드로어 헤더 */}
-          <div className="p-4 sm:p-6 border-b border-slate-200 bg-slate-50/50 space-y-3 sm:space-y-4 shrink-0 overflow-y-auto max-h-[45vh] md:max-h-none">
+          <div className="p-4 sm:p-6 border-b border-slate-200 bg-slate-50/50 space-y-3 sm:space-y-4 shrink-0 overflow-y-auto max-h-[48vh] md:max-h-none">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 truncate">
                 <span className="text-lg sm:text-xl font-bold text-slate-900 whitespace-nowrap">{assemb.assemb_nm}</span>
@@ -159,7 +154,7 @@ export default function AssembDetailDrawer({
               </div>
             </div>
 
-            {/* 의원 소속 상임위 & 등원일 */}
+            {/* 상임위 & 등원일 */}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
               <div className="flex items-center gap-1.5 truncate">
                 <Layers className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
@@ -192,7 +187,10 @@ export default function AssembDetailDrawer({
               </div>
             ) : null}
 
-            {/* 핵심 지표 5분할 칩 (완전한 1줄 유지) */}
+            {/* 2단계 신규: 의원 시민 반응 스탬프 컴포넌트 탑재 */}
+            <MemberEmotionStamps assembId={assemb.assemb_id} assembNm={assemb.assemb_nm} />
+
+            {/* 핵심 지표 5분할 칩 */}
             <div className="grid grid-cols-5 gap-1 text-center text-xs">
               <div className="bg-indigo-50/80 p-1.5 rounded-lg border border-indigo-100 flex flex-col justify-center overflow-hidden">
                 <span className="text-indigo-600 block text-[9px] sm:text-[10px] mb-0.5 font-semibold whitespace-nowrap truncate">종합점수</span>
