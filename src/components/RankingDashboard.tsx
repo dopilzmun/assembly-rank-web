@@ -363,11 +363,11 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
           조회 결과: <strong className="text-slate-900 font-bold">{sortedData.length}</strong>명 / 전체 {initialData.length}명
         </div>
         <span className="text-slate-400 text-xs hidden sm:inline">
-          * 의원 카드를 터치하면 상세 성적표가 열립니다.
+          * 의원 행을 클릭하면 상세 성적표가 열립니다.
         </span>
       </div>
 
-      {/* 2. [모바일 전용] 시원한 3대 지표 카드 뷰 (최소 폰트 12px 적용) */}
+      {/* 2. [모바일 전용] 시원한 3대 지표 카드 뷰 */}
       <div className="block md:hidden space-y-3">
         {sortedData.length > 0 ? (
           sortedData.map((row) => {
@@ -443,13 +443,13 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
                   </div>
                 </div>
 
-                {/* 2열: 소속 상임위 및 지역구 안내 */}
+                {/* 2열: 소속 상임위 및 지역구 */}
                 <div className="flex items-center justify-between text-xs text-slate-500 font-medium px-0.5">
                   <span className="truncate max-w-[65%]">{row.cmit_nm || "상임위 미배정"}</span>
                   <span className="shrink-0 text-slate-400">{row.rgn_nm || "비례대표"}</span>
                 </div>
 
-                {/* 3열: 시원한 3대 지표 그리드 (최소 12px, 수치 15px) */}
+                {/* 3열: 3대 핵심 지표 그리드 */}
                 <div className="grid grid-cols-3 gap-2 bg-slate-50/90 rounded-xl p-2.5 text-center font-mono">
                   <div className="p-1">
                     <span className="text-xs text-slate-500 font-sans block mb-0.5 font-medium">대표발의</span>
@@ -491,247 +491,257 @@ export default function RankingDashboard({ initialData, weeklyRadar }: RankingDa
         )}
       </div>
 
-      {/* 3. [PC 전용] 10컬럼 분석 테이블 */}
+      {/* 3. [PC 전용] 가로 스크롤 없는 반응형 맞춤 테이블 (Zero Horizontal Scroll) */}
       <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600">
-            <thead className="bg-slate-100/80 text-slate-700 font-semibold text-xs tracking-wider border-b border-slate-200 select-none whitespace-nowrap">
-              <tr>
-                <th className="py-3 px-2 text-center w-12">비교</th>
-                <th
-                  onClick={() => handleSort("rnkg")}
-                  className="py-3 px-2.5 text-center w-14 cursor-pointer hover:bg-slate-200/70 transition-colors group"
-                >
-                  <div className="flex items-center justify-center gap-1">
-                    <span>순위</span>
-                    {renderSortIcon("rnkg")}
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort("score")}
-                  className="py-3 px-2.5 cursor-pointer hover:bg-slate-200/70 transition-colors group text-right w-20"
-                >
-                  <div className="flex items-center justify-end gap-1 text-indigo-700">
-                    <span>종합점수</span>
-                    {renderSortIcon("score")}
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort("assemb_nm")}
-                  className="py-3 px-3.5 cursor-pointer hover:bg-slate-200/70 transition-colors group min-w-[280px]"
-                >
-                  <div className="flex items-center gap-1">
-                    <span>의원명</span>
-                    {renderSortIcon("assemb_nm")}
-                  </div>
-                </th>
-                <th className="py-3 px-2 text-center w-24">정당</th>
-                <th className="py-3 px-3 w-36">지역구</th>
-                <th
-                  onClick={() => handleSort("ttl_motn_cnt")}
-                  className="py-3 px-2.5 text-right cursor-pointer hover:bg-slate-200/70 transition-colors group w-24"
-                >
-                  <div className="flex items-center justify-end gap-1">
-                    <span>대표발의</span>
-                    {renderSortIcon("ttl_motn_cnt")}
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort("own_cmit_motn_rate")}
-                  className="py-3 px-2.5 text-right cursor-pointer hover:bg-slate-200/70 transition-colors group w-24"
-                >
-                  <div className="flex items-center justify-end gap-1">
-                    <span>소속위 집중</span>
-                    {renderSortIcon("own_cmit_motn_rate")}
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort("cmt_present_rate")}
-                  className="py-3 px-2.5 text-right cursor-pointer hover:bg-slate-200/70 transition-colors group w-20"
-                >
-                  <div className="flex items-center justify-end gap-1">
-                    <span>상정률</span>
-                    {renderSortIcon("cmt_present_rate")}
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort("avg_cmt_days")}
-                  className="py-3 px-2.5 text-right cursor-pointer hover:bg-slate-200/70 transition-colors group w-24"
-                >
-                  <div className="flex items-center justify-end gap-1">
-                    <span>심사소요일</span>
-                    {renderSortIcon("avg_cmt_days")}
-                  </div>
-                </th>
-                <th
-                  onClick={() => handleSort("aprv_cnt")}
-                  className="py-3 px-3 text-right cursor-pointer hover:bg-slate-200/70 transition-colors group w-28"
-                >
-                  <div className="flex items-center justify-end gap-1">
-                    <span>본회의 실질가결</span>
-                    {renderSortIcon("aprv_cnt")}
-                  </div>
-                </th>
-              </tr>
-            </thead>
+        <table className="w-full text-left text-sm text-slate-600 table-auto">
+          <thead className="bg-slate-100/80 text-slate-700 font-semibold text-xs tracking-wider border-b border-slate-200 select-none whitespace-nowrap">
+            <tr>
+              <th className="py-3 px-2 text-center w-10">비교</th>
+              
+              <th
+                onClick={() => handleSort("rnkg")}
+                className="py-3 px-2 text-center w-12 cursor-pointer hover:bg-slate-200/70 transition-colors group"
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <span>순위</span>
+                  {renderSortIcon("rnkg")}
+                </div>
+              </th>
 
-            <tbody className="divide-y divide-slate-100">
-              {sortedData.length > 0 ? (
-                sortedData.map((row) => {
-                  const tag = getLegislativeTag(row);
-                  const motnCnt = Number(row.ttl_motn_cnt) || 0;
-                  const monthlyPace = Number(row.monthly_pace || 0).toFixed(1);
-                  const isDeferred = row.is_deferred === 1;
-                  const isSelectedForCompare = compareList.some((m) => m.assemb_id === row.assemb_id);
-                  const pureCnt = Number(row.pure_aprv_cnt) || 0;
-                  const altCnt = Number(row.alt_aprv_cnt) || 0;
+              <th
+                onClick={() => handleSort("score")}
+                className="py-3 px-2 text-right w-20 cursor-pointer hover:bg-slate-200/70 transition-colors group"
+              >
+                <div className="flex items-center justify-end gap-1 text-indigo-700">
+                  <span>종합점수</span>
+                  {renderSortIcon("score")}
+                </div>
+              </th>
 
-                  return (
-                    <tr
-                      key={row.assemb_id}
-                      onClick={() => handleSelectAssemb(row)}
-                      className={`hover:bg-indigo-50/50 cursor-pointer transition-colors group ${
-                        isSelectedForCompare ? "bg-indigo-50/60" : isDeferred ? "bg-slate-50/40 opacity-75" : ""
-                      }`}
-                    >
-                      <td className="py-3.5 px-2 text-center" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={(e) => toggleCompare(row, e)}
-                          title="1:1 맞비교 대상에 추가"
-                          className={`w-7 h-7 rounded-lg text-xs font-black transition-all flex items-center justify-center ${
-                            isSelectedForCompare
-                              ? "bg-indigo-600 text-white shadow-md scale-105"
-                              : "bg-slate-100 text-slate-400 hover:bg-indigo-100 hover:text-indigo-700"
-                          }`}
-                        >
-                          VS
-                        </button>
-                      </td>
+              <th
+                onClick={() => handleSort("assemb_nm")}
+                className="py-3 px-3 cursor-pointer hover:bg-slate-200/70 transition-colors group"
+              >
+                <div className="flex items-center gap-1">
+                  <span>의원명</span>
+                  {renderSortIcon("assemb_nm")}
+                </div>
+              </th>
 
-                      <td className="py-3.5 px-2.5 text-center font-bold text-slate-900 whitespace-nowrap">
-                        {isDeferred ? (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-slate-200 text-slate-600">
-                            유예
-                          </span>
-                        ) : row.rnkg && row.rnkg <= 3 ? (
-                          <span className="inline-flex items-center justify-center w-6 h-6 bg-indigo-600 text-white rounded-full font-black text-xs shadow-sm">
-                            {row.rnkg}
-                          </span>
-                        ) : (
-                          <span className="text-slate-500 font-mono text-xs">{row.rnkg ?? "-"}</span>
-                        )}
-                      </td>
+              <th className="py-3 px-2 text-center w-20">정당</th>
+              <th className="py-3 px-2 w-24 lg:w-28">지역구</th>
 
-                      <td className="py-3.5 px-2.5 text-right whitespace-nowrap">
-                        {isDeferred || row.score === null ? (
-                          <span className="text-slate-400 text-xs font-mono">-</span>
-                        ) : (
-                          <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-indigo-50 text-indigo-700 border border-indigo-200 font-mono shadow-sm">
-                            {Number(row.score).toFixed(1)}점
-                          </span>
-                        )}
-                      </td>
+              <th
+                onClick={() => handleSort("ttl_motn_cnt")}
+                className="py-3 px-2 text-right cursor-pointer hover:bg-slate-200/70 transition-colors group w-20 lg:w-24"
+              >
+                <div className="flex items-center justify-end gap-1">
+                  <span>대표발의</span>
+                  {renderSortIcon("ttl_motn_cnt")}
+                </div>
+              </th>
 
-                      <td className="py-3.5 px-3.5">
-                        <div className="flex flex-col">
-                          <div className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                            <span className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">
-                              {row.assemb_nm}
-                            </span>
-                            {tag && (
-                              <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-semibold border ${tag.style}`}>
-                                {tag.label}
-                                {tag.isSpecial && <Info className="w-3 h-3 text-slate-400" />}
-                              </span>
-                            )}
-                            <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-500 transition-all shrink-0 ml-1" />
-                          </div>
-                          <span className="text-xs text-slate-400 block truncate max-w-[340px] mt-0.5">
-                            {row.cmit_nm || "상임위 미배정"}
-                          </span>
-                        </div>
-                      </td>
+              {/* 1280px(xl) 이상 화면에서만 표시되어 중간 노트북 스크롤 방지 */}
+              <th
+                onClick={() => handleSort("own_cmit_motn_rate")}
+                className="hidden xl:table-cell py-3 px-2 text-right cursor-pointer hover:bg-slate-200/70 transition-colors group w-20"
+              >
+                <div className="flex items-center justify-end gap-1">
+                  <span>소속위집중</span>
+                  {renderSortIcon("own_cmit_motn_rate")}
+                </div>
+              </th>
 
-                      <td className="py-3.5 px-2 text-center whitespace-nowrap">
-                        <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-                            PARTY_COLORS[row.pltprt_nm] || "bg-gray-50 text-gray-700 border-gray-200"
-                          }`}
-                        >
-                          {row.pltprt_nm}
+              <th
+                onClick={() => handleSort("cmt_present_rate")}
+                className="py-3 px-2 text-right cursor-pointer hover:bg-slate-200/70 transition-colors group w-18 lg:w-20"
+              >
+                <div className="flex items-center justify-end gap-1">
+                  <span>상정률</span>
+                  {renderSortIcon("cmt_present_rate")}
+                </div>
+              </th>
+
+              {/* 1280px(xl) 이상 화면에서만 표시되어 중간 노트북 스크롤 방지 */}
+              <th
+                onClick={() => handleSort("avg_cmt_days")}
+                className="hidden xl:table-cell py-3 px-2 text-right cursor-pointer hover:bg-slate-200/70 transition-colors group w-20"
+              >
+                <div className="flex items-center justify-end gap-1">
+                  <span>심사소요</span>
+                  {renderSortIcon("avg_cmt_days")}
+                </div>
+              </th>
+
+              <th
+                onClick={() => handleSort("aprv_cnt")}
+                className="py-3 px-3 text-right cursor-pointer hover:bg-slate-200/70 transition-colors group w-24 lg:w-28"
+              >
+                <div className="flex items-center justify-end gap-1">
+                  <span>실질가결</span>
+                  {renderSortIcon("aprv_cnt")}
+                </div>
+              </th>
+            </tr>
+          </thead>
+
+          <tbody className="divide-y divide-slate-100">
+            {sortedData.length > 0 ? (
+              sortedData.map((row) => {
+                const tag = getLegislativeTag(row);
+                const motnCnt = Number(row.ttl_motn_cnt) || 0;
+                const monthlyPace = Number(row.monthly_pace || 0).toFixed(1);
+                const isDeferred = row.is_deferred === 1;
+                const isSelectedForCompare = compareList.some((m) => m.assemb_id === row.assemb_id);
+                const pureCnt = Number(row.pure_aprv_cnt) || 0;
+                const altCnt = Number(row.alt_aprv_cnt) || 0;
+
+                return (
+                  <tr
+                    key={row.assemb_id}
+                    onClick={() => handleSelectAssemb(row)}
+                    className={`hover:bg-indigo-50/50 cursor-pointer transition-colors group ${
+                      isSelectedForCompare ? "bg-indigo-50/60" : isDeferred ? "bg-slate-50/40 opacity-75" : ""
+                    }`}
+                  >
+                    <td className="py-3 px-2 text-center" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={(e) => toggleCompare(row, e)}
+                        title="1:1 맞비교 대상에 추가"
+                        className={`w-7 h-7 rounded-lg text-xs font-black transition-all flex items-center justify-center mx-auto cursor-pointer ${
+                          isSelectedForCompare
+                            ? "bg-indigo-600 text-white shadow-md scale-105"
+                            : "bg-slate-100 text-slate-400 hover:bg-indigo-100 hover:text-indigo-700"
+                        }`}
+                      >
+                        VS
+                      </button>
+                    </td>
+
+                    <td className="py-3 px-2 text-center font-bold text-slate-900 whitespace-nowrap">
+                      {isDeferred ? (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-slate-200 text-slate-600">
+                          유예
                         </span>
-                      </td>
+                      ) : row.rnkg && row.rnkg <= 3 ? (
+                        <span className="inline-flex items-center justify-center w-6 h-6 bg-indigo-600 text-white rounded-full font-black text-xs shadow-sm mx-auto">
+                          {row.rnkg}
+                        </span>
+                      ) : (
+                        <span className="text-slate-500 font-mono text-xs">{row.rnkg ?? "-"}</span>
+                      )}
+                    </td>
 
-                      <td className="py-3.5 px-3 text-slate-600 text-xs whitespace-nowrap truncate max-w-[144px]">
-                        {row.rgn_nm || "비례대표"}
-                      </td>
+                    <td className="py-3 px-2 text-right whitespace-nowrap">
+                      {isDeferred || row.score === null ? (
+                        <span className="text-slate-400 text-xs font-mono">-</span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-black bg-indigo-50 text-indigo-700 border border-indigo-200 font-mono shadow-xs">
+                          {Number(row.score).toFixed(1)}점
+                        </span>
+                      )}
+                    </td>
 
-                      <td className="py-3.5 px-2.5 text-right font-mono whitespace-nowrap">
-                        <div className="flex flex-col items-end">
-                          <span className="text-slate-800 font-semibold">{motnCnt.toLocaleString()}건</span>
-                          <span className="text-xs text-slate-400">월 {monthlyPace}건</span>
+                    <td className="py-3 px-3">
+                      <div className="flex flex-col">
+                        <div className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                          <span className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                            {row.assemb_nm}
+                          </span>
+                          {tag && (
+                            <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[11px] font-semibold border ${tag.style}`}>
+                              {tag.label}
+                              {tag.isSpecial && <Info className="w-3 h-3 text-slate-400" />}
+                            </span>
+                          )}
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-500 transition-all shrink-0 ml-0.5" />
                         </div>
-                      </td>
+                        <span className="text-xs text-slate-400 block truncate max-w-[200px] lg:max-w-[280px] mt-0.5">
+                          {row.cmit_nm || "상임위 미배정"}
+                        </span>
+                      </div>
+                    </td>
 
-                      <td className="py-3.5 px-2.5 text-right whitespace-nowrap">
-                        <div className="flex flex-col items-end">
-                          <span className="font-semibold text-blue-700 font-mono">
-                            {Number(row.own_cmit_motn_rate) || 0}%
-                          </span>
-                          <span className="text-xs text-slate-400 font-mono">
-                            {Number(row.own_cmit_motn_cnt) || 0}건
-                          </span>
+                    <td className="py-3 px-2 text-center whitespace-nowrap">
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold border ${
+                          PARTY_COLORS[row.pltprt_nm] || "bg-gray-50 text-gray-700 border-gray-200"
+                        }`}
+                      >
+                        {row.pltprt_nm}
+                      </span>
+                    </td>
+
+                    <td className="py-3 px-2 text-slate-600 text-xs truncate max-w-[100px] lg:max-w-[130px]">
+                      {row.rgn_nm || "비례대표"}
+                    </td>
+
+                    <td className="py-3 px-2 text-right font-mono whitespace-nowrap">
+                      <div className="flex flex-col items-end">
+                        <span className="text-slate-800 font-semibold">{motnCnt.toLocaleString()}건</span>
+                        <span className="text-xs text-slate-400">월 {monthlyPace}건</span>
+                      </div>
+                    </td>
+
+                    {/* 1280px(xl) 이상 화면에서만 노출 */}
+                    <td className="hidden xl:table-cell py-3 px-2 text-right whitespace-nowrap font-mono">
+                      <div className="flex flex-col items-end">
+                        <span className="font-semibold text-blue-700">
+                          {Number(row.own_cmit_motn_rate) || 0}%
+                        </span>
+                        <span className="text-xs text-slate-400">
+                          {Number(row.own_cmit_motn_cnt) || 0}건
+                        </span>
+                      </div>
+                    </td>
+
+                    <td className="py-3 px-2 text-right whitespace-nowrap font-mono">
+                      <div className="flex flex-col items-end">
+                        <span className="font-semibold text-slate-800">
+                          {Number(row.cmt_present_rate) || 0}%
+                        </span>
+                        <span className="text-xs text-slate-400">
+                          {Number(row.cmt_present_cnt) || 0}건
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* 1280px(xl) 이상 화면에서만 노출 */}
+                    <td className="hidden xl:table-cell py-3 px-2 text-right font-mono whitespace-nowrap">
+                      {Number(row.avg_cmt_days) > 0 ? (
+                        <span className="inline-flex items-center gap-1 text-slate-700 text-xs">
+                          <Clock className="w-3 h-3 text-slate-400" />
+                          {Number(row.avg_cmt_days)}일
+                        </span>
+                      ) : (
+                        <span className="text-slate-300">-</span>
+                      )}
+                    </td>
+
+                    <td className="py-3 px-3 text-right whitespace-nowrap">
+                      <div className="flex flex-col items-end">
+                        <span className="font-bold text-emerald-600 font-mono">
+                          {(Number(row.aprv_cnt) || 0).toLocaleString()}건
+                        </span>
+                        <div className="flex items-center gap-1 text-xs text-slate-500 font-mono">
+                          <span className="text-emerald-700 font-medium">원{pureCnt}</span>
+                          <span>·</span>
+                          <span className="text-sky-700 font-medium">대{altCnt}</span>
                         </div>
-                      </td>
-
-                      <td className="py-3.5 px-2.5 text-right whitespace-nowrap">
-                        <div className="flex flex-col items-end">
-                          <span className="font-semibold text-slate-800 font-mono">
-                            {Number(row.cmt_present_rate) || 0}%
-                          </span>
-                          <span className="text-xs text-slate-400 font-mono">
-                            {Number(row.cmt_present_cnt) || 0}건
-                          </span>
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-2.5 text-right font-mono whitespace-nowrap">
-                        {Number(row.avg_cmt_days) > 0 ? (
-                          <span className="inline-flex items-center gap-1 text-slate-700 text-xs">
-                            <Clock className="w-3 h-3 text-slate-400" />
-                            {Number(row.avg_cmt_days)}일
-                          </span>
-                        ) : (
-                          <span className="text-slate-300">-</span>
-                        )}
-                      </td>
-
-                      <td className="py-3.5 px-3 text-right whitespace-nowrap">
-                        <div className="flex flex-col items-end">
-                          <span className="font-bold text-emerald-600 font-mono">
-                            {(Number(row.aprv_cnt) || 0).toLocaleString()}건
-                          </span>
-                          <div className="flex items-center gap-1 text-xs text-slate-500 font-mono">
-                            <span className="text-emerald-700 font-medium">원{pureCnt}</span>
-                            <span>·</span>
-                            <span className="text-sky-700 font-medium">대{altCnt}</span>
-                            <span>({row.aprv_rate !== null ? `${Number(row.aprv_rate)}%` : "-"})</span>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={11} className="py-12 text-center text-slate-400 text-sm">
-                    선택하신 조건에 일치하는 국회의원이 없습니다.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={11} className="py-12 text-center text-slate-400 text-sm">
+                  선택하신 조건에 일치하는 국회의원이 없습니다.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
 
       {/* 4. 하단 플로팅 맞비교 독 */}
