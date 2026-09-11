@@ -14,12 +14,30 @@ import {
   CheckCircle2,
   RotateCw,
   Search,
+  MessageSquareQuote,
+  Sparkles,
 } from "lucide-react";
 
 interface MyDistrictWidgetProps {
   allMembers: BillRankingRow[];
   onSelectMember?: (member: BillRankingRow) => void;
 }
+
+interface FeedbackSummary {
+  feedback_id: number;
+  nickname: string;
+  category: "praise" | "suggest" | "question" | "critic";
+  content: string;
+  is_verified: number;
+  created_at: string;
+}
+
+const CATEGORY_META = {
+  praise: { label: "응원", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  suggest: { label: "건의", color: "bg-blue-50 text-blue-700 border-blue-200" },
+  question: { label: "질문", color: "bg-amber-50 text-amber-700 border-amber-200" },
+  critic: { label: "분발", color: "bg-rose-50 text-rose-700 border-rose-200" },
+};
 
 export default function MyDistrictWidget({ allMembers, onSelectMember }: MyDistrictWidgetProps) {
   const [district, setDistrict] = useState<string>("");
@@ -32,6 +50,10 @@ export default function MyDistrictWidget({ allMembers, onSelectMember }: MyDistr
   const [remainingDays, setRemainingDays] = useState<number>(30);
   const [isGpsLoading, setIsGpsLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // 최신 한마디 피드 상태
+  const [latestFeedback, setLatestFeedback] = useState<FeedbackSummary | null>(null);
+  const [isLoadingFeedback, setIsLoadingFeedback] = useState(false);
 
   const router = useRouter();
 
@@ -64,12 +86,35 @@ export default function MyDistrictWidget({ allMembers, onSelectMember }: MyDistr
     }
   }, []);
 
-  // 2. 지역구 매칭 로직
+  // 2. 지역구 매칭 의원 목록
   const matchedMembers = district
     ? allMembers.filter((m) => m.rgn_nm && m.rgn_nm.includes(district))
     : [];
 
-  // 3. GPS 1초 동네 인증 실행
+  // 3. 매칭된 대표 의원의 최신 피드백 1건 비동기 조회
+  useEffect(() => {
+    if (matchedMembers.length === 0) {
+      setLatestFeedback(null);
+      return;
+    }
+
+    const targetAssembId = matchedMembers[0].assemb_id;
+    setIsLoadingFeedback(true);
+
+    fetch(`/api/feedback?assemb_id=${targetAssembId}&verified_only=false`)
+      .then((res) => (res.ok ? res.json() : { feedbacks: [] }))
+      .then((data) => {
+        if (data.feedbacks && data.feedbacks.length > 0) {
+          setLatestFeedback(data.feedbacks[0]);
+        } else {
+          setLatestFeedback(null);
+        }
+      })
+      .catch((err) => console.error("최신 피드 로드 실패:", err))
+      .finally(() => setIsLoadingFeedback(false));
+  }, [matchedMembers[0]?.assemb_id]);
+
+  // 4. GPS 1초 동네 인증 실행
   const handleGpsAuth = () => {
     if (!navigator.geolocation) {
       setStatusMsg({ type: "error", text: "브라우저가 위치 정보를 지원하지 않습니다." });
@@ -94,7 +139,6 @@ export default function MyDistrictWidget({ allMembers, onSelectMember }: MyDistr
 
           const data = await res.json();
           if (data.verified) {
-            // 후보 키워드 중 allMembers와 매칭되는 최적 지역구 탐색
             let targetMatch = district;
             if (data.local_keywords && data.local_keywords.length > 0) {
               for (const kw of data.local_keywords) {
@@ -113,7 +157,6 @@ export default function MyDistrictWidget({ allMembers, onSelectMember }: MyDistr
             setRemainingDays(30);
             setIsEditing(false);
 
-            // 로컬스토리지 저장 (피드백 보드와 100% 동기화)
             localStorage.setItem("my_district", targetMatch);
             localStorage.setItem(
               "district_gps_verified",
@@ -141,7 +184,6 @@ export default function MyDistrictWidget({ allMembers, onSelectMember }: MyDistr
     );
   };
 
-  // 수동 저장 처리
   const handleSaveManual = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputVal.trim()) return;
@@ -149,7 +191,7 @@ export default function MyDistrictWidget({ allMembers, onSelectMember }: MyDistr
     setDistrict(clean);
     localStorage.setItem("my_district", clean);
     setIsEditing(false);
-    setIsVerified(false); // 수동 입력 시 GPS 인증은 해제
+    setIsVerified(false);
     localStorage.removeItem("district_gps_verified");
   };
 
@@ -163,7 +205,7 @@ export default function MyDistrictWidget({ allMembers, onSelectMember }: MyDistr
 
   return (
     <>
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 flex flex-col justify-between space-y-4 h-full">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 flex flex-col justify-between space-y-3.5 h-full">
         
         {/* 1. 헤더 */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
@@ -251,7 +293,7 @@ export default function MyDistrictWidget({ allMembers, onSelectMember }: MyDistr
             </div>
           )}
 
-          {/* 상태 안내 토스트 */}
+          {/* 상태 안내 메시지 */}
           {statusMsg && (
             <p
               className={`text-xs px-2.5 py-1 rounded-lg ${
@@ -291,48 +333,101 @@ export default function MyDistrictWidget({ allMembers, onSelectMember }: MyDistr
             </form>
           )}
 
-          {/* 매칭된 의원 목록 */}
+          {/* 매칭된 의원 카드 */}
           {district && (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {matchedMembers.length > 0 ? (
-                matchedMembers.map((m) => (
-                  <div
-                    key={m.assemb_id}
-                    onClick={() => handleMemberClick(m)}
-                    className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50/90 hover:bg-indigo-50/50 border border-slate-100 hover:border-indigo-200 transition-all cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-2.5 truncate">
-                      <span className="w-7 text-center font-mono font-bold text-indigo-600 text-sm shrink-0">
-                        {m.rnkg ? `${m.rnkg}위` : "-"}
-                      </span>
-                      <div className="truncate">
-                        <div className="flex items-center gap-1.5">
-                          <strong className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
-                            {m.assemb_nm}
-                          </strong>
-                          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-white border border-slate-200 text-slate-700">
-                            {m.pltprt_nm}
+                <>
+                  {matchedMembers.slice(0, 1).map((m) => (
+                    <div
+                      key={m.assemb_id}
+                      onClick={() => handleMemberClick(m)}
+                      className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50/90 hover:bg-indigo-50/50 border border-slate-100 hover:border-indigo-200 transition-all cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-2.5 truncate">
+                        <span className="w-7 text-center font-mono font-bold text-indigo-600 text-sm shrink-0">
+                          {m.rnkg ? `${m.rnkg}위` : "-"}
+                        </span>
+                        <div className="truncate">
+                          <div className="flex items-center gap-1.5">
+                            <strong className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                              {m.assemb_nm}
+                            </strong>
+                            <span className="px-2 py-0.5 rounded text-xs font-semibold bg-white border border-slate-200 text-slate-700">
+                              {m.pltprt_nm}
+                            </span>
+                          </div>
+                          <span className="text-xs text-slate-500 block truncate mt-0.5 max-w-[190px] sm:max-w-[260px]">
+                            {m.rgn_nm} · {m.cmit_nm || "상임위 미배정"}
                           </span>
                         </div>
-                        <span className="text-xs text-slate-500 block truncate mt-0.5 max-w-[190px] sm:max-w-[260px]">
-                          {m.rgn_nm} · {m.cmit_nm || "상임위 미배정"}
-                        </span>
                       </div>
+
+                      <div className="flex items-center gap-2 shrink-0 font-mono text-right pl-2">
+                        <div>
+                          <span className="text-sm font-black text-indigo-700 block">
+                            {m.score ? `${Number(m.score).toFixed(1)}점` : "유예"}
+                          </span>
+                          <span className="text-xs text-emerald-700 font-bold block">
+                            실질가결 {m.aprv_cnt}건
+                          </span>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all" />
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* 💬 최신 동네 한마디 말풍선 미니 피드 */}
+                  <div className="pt-0.5">
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1.5 px-0.5">
+                      <span className="font-bold text-slate-700 flex items-center gap-1">
+                        <MessageSquareQuote className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>동네 주민 최신 한마디</span>
+                      </span>
+                      <span className="text-slate-400 text-[10px]">터치 시 피드로 이동</span>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0 font-mono text-right pl-2">
-                      <div>
-                        <span className="text-sm font-black text-indigo-700 block">
-                          {m.score ? `${Number(m.score).toFixed(1)}점` : "유예"}
-                        </span>
-                        <span className="text-xs text-emerald-700 font-bold block">
-                          실질가결 {m.aprv_cnt}건
-                        </span>
+                    {isLoadingFeedback ? (
+                      <div className="bg-slate-50/70 rounded-xl p-2.5 text-center text-xs text-slate-400">
+                        한마디를 불러오는 중...
                       </div>
-                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all" />
-                    </div>
+                    ) : latestFeedback ? (
+                      <div
+                        onClick={() => handleMemberClick(matchedMembers[0])}
+                        className="bg-indigo-50/40 hover:bg-indigo-50/80 border border-indigo-100/90 rounded-xl p-2.5 transition-all cursor-pointer group space-y-1.5 shadow-2xs"
+                      >
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${CATEGORY_META[latestFeedback.category].color}`}>
+                              {CATEGORY_META[latestFeedback.category].label}
+                            </span>
+                            <span className="font-bold text-slate-800 text-[11px]">{latestFeedback.nickname}</span>
+                            {latestFeedback.is_verified === 1 ? (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                <ShieldCheck className="w-2.5 h-2.5" /> 인증 주민
+                              </span>
+                            ) : (
+                              <span className="px-1 text-[10px] text-slate-400">일반</span>
+                            )}
+                          </div>
+                          <span className="text-[10px] font-mono text-slate-400">{latestFeedback.created_at}</span>
+                        </div>
+
+                        <p className="text-xs text-slate-700 leading-snug break-keep line-clamp-2 font-normal group-hover:text-indigo-950 transition-colors">
+                          "{latestFeedback.content}"
+                        </p>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => handleMemberClick(matchedMembers[0])}
+                        className="bg-slate-50/80 hover:bg-indigo-50/50 border border-dashed border-slate-200 rounded-xl p-2.5 text-center text-xs text-slate-400 transition-colors cursor-pointer group"
+                      >
+                        <span>아직 등록된 한마디가 없습니다. </span>
+                        <strong className="text-indigo-600 font-bold group-hover:underline">첫 의견을 남겨보세요! ✨</strong>
+                      </div>
+                    )}
                   </div>
-                ))
+                </>
               ) : (
                 <div className="py-6 text-center text-xs sm:text-sm text-slate-400 bg-slate-50 rounded-xl">
                   '{district}'에 매칭되는 지역구 의원이 없습니다. 지역명을 확인해주세요 (예: 마포, 해운대, 수원).
