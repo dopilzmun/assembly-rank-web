@@ -3,7 +3,9 @@ import pool from "@/lib/db";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 import crypto from "crypto";
 
-// 클라이언트 IP 추출 및 단방향 SHA-256 해시 생성 (개인정보 보호 & 중복 방지)
+// Vercel Serverless 동적 실행 강제 (응답 캐싱 방지)
+export const dynamic = "force-dynamic";
+
 function getClientIpHash(req: NextRequest, pollId: number): string {
   const forwardedFor = req.headers.get("x-forwarded-for");
   const realIp = req.headers.get("x-real-ip");
@@ -15,24 +17,36 @@ function getClientIpHash(req: NextRequest, pollId: number): string {
 
 export async function GET(req: NextRequest) {
   try {
-    // 1. 오늘 날짜 기준 최신 활성 쟁점 법안 1건 조회
+    // 1. 한국 표준시(KST) 기준 오늘 이하의 활성 안건 중 가장 최신 1건 조회
     const [rows] = await pool.query<RowDataPacket[]>(
       `SELECT poll_id, title, summary, pro_cnt, con_cnt, DATE_FORMAT(poll_date, '%Y-%m-%d') as poll_date
        FROM daily_bill_poll
-       WHERE is_active = 1 AND poll_date <= CURRENT_DATE()
+       WHERE is_active = 1 
+         AND poll_date <= DATE(CONVERT_TZ(NOW(), '+00:00', '+09:00'))
        ORDER BY poll_date DESC, poll_id DESC
        LIMIT 1;`
     );
 
+    // 2. 만약 오늘자 안건이 아직 등록되지 않았다면 가장 최근 안건을 노출
     if (rows.length === 0) {
-      return NextResponse.json({ poll: null });
+      const [fallbackRows] = await pool.query<RowDataPacket[]>(
+        `SELECT poll_id, title, summary, pro_cnt, con_cnt, DATE_FORMAT(poll_date, '%Y-%m-%d') as poll_date
+         FROM daily_bill_poll
+         WHERE is_active = 1
+         ORDER BY poll_date DESC, poll_id DESC
+         LIMIT 1;`
+      );
+      if (fallbackRows.length === 0) {
+        return NextResponse.json({ poll: null });
+      }
+      rows.push(fallbackRows[0]);
     }
 
     const p = rows[0];
     const total = Number(p.pro_cnt) + Number(p.con_cnt);
     const proRate = total > 0 ? Math.round((Number(p.pro_cnt) / total) * 100) : 50;
 
-    // 2. 현재 접속한 사용자가 이미 투표했는지 IP 해시 대조
+    // 3. 현재 접속 IP의 투표 여부 확인
     const ipHash = getClientIpHash(req, p.poll_id);
     const [logRows] = await pool.query<RowDataPacket[]>(
       `SELECT user_choice FROM daily_bill_poll_log WHERE poll_id = ? AND ip_hash = ? LIMIT 1;`,
@@ -41,21 +55,28 @@ export async function GET(req: NextRequest) {
 
     const userChoice = logRows.length > 0 ? logRows[0].user_choice : null;
 
-    return NextResponse.json({
-      poll: {
-        poll_id: p.poll_id,
-        title: p.title,
-        summary: p.summary,
-        pro_cnt: Number(p.pro_cnt),
-        con_cnt: Number(p.con_cnt),
-        total_cnt: total,
-        pro_rate: proRate,
-        con_rate: 100 - proRate,
-        poll_date: p.poll_date,
-        has_voted: Boolean(userChoice),
-        user_choice: userChoice,
+    return NextResponse.json(
+      {
+        poll: {
+          poll_id: p.poll_id,
+          title: p.title,
+          summary: p.summary,
+          pro_cnt: Number(p.pro_cnt),
+          con_cnt: Number(p.con_cnt),
+          total_cnt: total,
+          pro_rate: proRate,
+          con_rate: 100 - proRate,
+          poll_date: p.poll_date,
+          has_voted: Boolean(userChoice),
+          user_choice: userChoice,
+        },
       },
-    });
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+        },
+      }
+    );
   } catch (error) {
     console.error("Failed to fetch daily poll:", error);
     return NextResponse.json({ poll: null }, { status: 500 });
@@ -75,7 +96,7 @@ export async function POST(req: NextRequest) {
 
     await connection.beginTransaction();
 
-    // 1. 서버 사이드 중복 투표 검증
+    // 서버 사이드 중복 투표 검증
     const [existing] = await connection.query<RowDataPacket[]>(
       `SELECT log_id FROM daily_bill_poll_log WHERE poll_id = ? AND ip_hash = ? FOR UPDATE;`,
       [poll_id, ipHash]
@@ -89,13 +110,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. 투표 로그 기록
+    // 투표 로그 기록
     await connection.query<ResultSetHeader>(
       `INSERT INTO daily_bill_poll_log (poll_id, ip_hash, user_choice) VALUES (?, ?, ?);`,
       [poll_id, ipHash, choice]
     );
 
-    // 3. 메인 카운트 원자적 증가
+    // 투표수 증가
     const column = choice === "pro" ? "pro_cnt" : "con_cnt";
     await connection.query<ResultSetHeader>(
       `UPDATE daily_bill_poll SET ${column} = ${column} + 1 WHERE poll_id = ?;`,
@@ -104,7 +125,6 @@ export async function POST(req: NextRequest) {
 
     await connection.commit();
 
-    // 4. 갱신된 집계 결과 반환
     const [rows] = await pool.query<RowDataPacket[]>(
       `SELECT pro_cnt, con_cnt FROM daily_bill_poll WHERE poll_id = ?;`,
       [poll_id]
