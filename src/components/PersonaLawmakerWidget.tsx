@@ -203,9 +203,9 @@ export default function PersonaLawmakerWidget() {
                   </div>
                 </div>
 
-                {/* 하단 의원 상세 이동 링크 */}
+                {/* 하단 의원 전체 성적표 이동 링크 (/rankings 검색 연동) */}
                 <Link
-                  href={`/members/${m.assemb_id}`}
+                  href={`/rankings?search=${encodeURIComponent(m.assemb_nm)}`}
                   className="mt-4 inline-flex w-full items-center justify-center gap-1 rounded-lg bg-slate-100 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-indigo-50 hover:text-indigo-700 dark:bg-slate-700/70 dark:text-slate-200 dark:hover:bg-indigo-950/60 dark:hover:text-indigo-300"
                 >
                   <span>의원 전체 성적표 보기</span>
