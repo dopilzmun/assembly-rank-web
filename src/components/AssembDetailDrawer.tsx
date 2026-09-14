@@ -212,7 +212,27 @@ export default function AssembDetailDrawer({
             )}
           </div>
 
-          {/* B. 6대 핵심 입법 지표 그리드 */}
+          {/* B. [원복] 육각 상태도 시각화 (프로필 바로 아래 상단 배치) */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900 flex flex-col items-center">
+            <div className="flex items-center gap-1.5 self-start pb-2">
+              <Sparkles className="h-4 w-4 text-indigo-600" />
+              <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">
+                6대 입법 역량 육각 상태도
+              </h3>
+            </div>
+            <HexagonRadarChart
+              metrics={{
+                pace: normalizedPace,
+                aprv_cnt: normalizedAprvCnt,
+                aprv_rate: normalizedAprvRate,
+                cmt_present: normalizedCmtRate,
+                speed: normalizedSpeed,
+                expertise: normalizedExpertise,
+              }}
+            />
+          </div>
+
+          {/* C. 6대 핵심 입법 지표 그리드 */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-sm sm:text-base text-slate-900 flex items-center gap-1.5 dark:text-slate-100">
@@ -285,26 +305,6 @@ export default function AssembDetailDrawer({
                 <span className="text-xs text-slate-400 block font-mono">발의 후 상정까지</span>
               </div>
             </div>
-          </div>
-
-          {/* C. 육각 상태도 시각화 (추가 결합) */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900 flex flex-col items-center">
-            <div className="flex items-center gap-1.5 self-start pb-2">
-              <Sparkles className="h-4 w-4 text-indigo-600" />
-              <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">
-                6대 입법 역량 육각 상태도
-              </h3>
-            </div>
-            <HexagonRadarChart
-              metrics={{
-                pace: normalizedPace,
-                aprv_cnt: normalizedAprvCnt,
-                aprv_rate: normalizedAprvRate,
-                cmt_present: normalizedCmtRate,
-                speed: normalizedSpeed,
-                expertise: normalizedExpertise,
-              }}
-            />
           </div>
 
           {/* D. 최근 대표발의 법안 목록 */}
