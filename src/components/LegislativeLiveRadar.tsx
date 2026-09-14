@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { WeeklyRadarStats, PipelineEvent } from "@/types/activity";
+import { WeeklyRadarStats } from "@/types/activity";
 import {
   Zap,
   Sparkles,
@@ -58,24 +58,24 @@ export default function LegislativeLiveRadar({
           {/* 헤더 */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-400/30">
+              <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-400/30 shrink-0">
                 <Zap className="w-5 h-5 text-indigo-300" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-base sm:text-lg font-black tracking-tight">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-base sm:text-lg font-black tracking-tight whitespace-nowrap">
                     최근 입법 레이더
                   </h2>
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 whitespace-nowrap">
                     {data.period_label || "최근 14일 기준"}
                   </span>
                 </div>
               </div>
             </div>
 
-            <span className="text-xs text-amber-300 font-semibold flex items-center gap-1">
+            <span className="text-xs text-amber-300 font-semibold flex items-center gap-1 shrink-0">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>단기 페이스</span>
+              <span className="whitespace-nowrap">단기 페이스</span>
             </span>
           </div>
 
@@ -92,7 +92,7 @@ export default function LegislativeLiveRadar({
                   : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
               }`}
             >
-              <span className="text-[11px] sm:text-xs text-slate-300 block font-medium">신규 발의</span>
+              <span className="text-[11px] sm:text-xs text-slate-300 block font-medium whitespace-nowrap">신규 발의</span>
               <strong className="text-lg sm:text-2xl font-black font-mono block mt-0.5 text-white">
                 {data.recent_motn_total}
               </strong>
@@ -109,7 +109,7 @@ export default function LegislativeLiveRadar({
                   : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
               }`}
             >
-              <span className="text-[11px] sm:text-xs text-amber-200 block font-medium">상임위 상정</span>
+              <span className="text-[11px] sm:text-xs text-amber-200 block font-medium whitespace-nowrap">상임위 상정</span>
               <strong className="text-lg sm:text-2xl font-black font-mono block mt-0.5 text-amber-300">
                 {data.recent_present_total}
               </strong>
@@ -134,7 +134,7 @@ export default function LegislativeLiveRadar({
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                 </span>
               )}
-              <span className="text-[11px] sm:text-xs text-emerald-200 block font-medium">본회의 가결</span>
+              <span className="text-[11px] sm:text-xs text-emerald-200 block font-medium whitespace-nowrap">본회의 가결</span>
               <strong className="text-lg sm:text-2xl font-black font-mono block mt-0.5 text-emerald-300">
                 {data.recent_aprv_total}
               </strong>
@@ -148,7 +148,7 @@ export default function LegislativeLiveRadar({
             <div className="flex items-center justify-between text-xs text-slate-300">
               <span className="font-bold flex items-center gap-1.5 text-amber-300">
                 <Flame className="w-4 h-4 text-amber-400" />
-                <span>최근 최다 발의 의원 (Movers)</span>
+                <span className="whitespace-nowrap">최근 최다 발의 의원 (Movers)</span>
               </span>
               <span className="text-[11px] text-slate-400 font-mono">
                 {data.period_label || "최근 14일"}
@@ -166,16 +166,16 @@ export default function LegislativeLiveRadar({
                     <span className="w-5 text-center font-mono font-black text-amber-300 text-sm">
                       {idx + 1}
                     </span>
-                    <strong className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors">
+                    <strong className="text-sm font-bold text-white group-hover:text-indigo-300 transition-colors whitespace-nowrap">
                       {m.assemb_nm}
                     </strong>
-                    <span className="px-1.5 py-0.2 rounded text-[11px] font-semibold bg-white/10 text-slate-200">
+                    <span className="px-1.5 py-0.2 rounded text-[11px] font-semibold bg-white/10 text-slate-200 whitespace-nowrap">
                       {m.pltprt_nm}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1 font-mono text-slate-300">
-                    <strong className="text-white text-xs">{m.recent_cnt} 건</strong>
+                  <div className="flex items-center gap-1 font-mono text-slate-300 shrink-0">
+                    <strong className="text-white text-xs whitespace-nowrap">{m.recent_cnt} 건</strong>
                     <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
                   </div>
                 </div>
@@ -193,16 +193,16 @@ export default function LegislativeLiveRadar({
       {/* ======================= 우측: 실시간 파이프라인 피드 ======================= */}
       <div className="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 flex flex-col justify-between space-y-4">
         
-        {/* 헤더 & 탭 */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        {/* 헤더 & 탭 (모바일 대응: flex-col sm:flex-row + whitespace-nowrap 강제) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <h3 className="font-bold text-sm sm:text-base text-slate-900">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <h3 className="font-bold text-sm sm:text-base text-slate-900 whitespace-nowrap">
               실시간 파이프라인 피드
             </h3>
           </div>
 
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold self-start sm:self-auto shrink-0">
             {(["전체", "발의", "상정", "가결"] as const).map((tab) => {
               const isActive = activeTab === tab;
               return (
@@ -210,7 +210,7 @@ export default function LegislativeLiveRadar({
                   key={tab}
                   type="button"
                   onClick={() => setActiveTab(tab)}
-                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                     isActive
                       ? tab === "가결"
                         ? "bg-white text-emerald-700 shadow-xs font-bold"
@@ -266,7 +266,7 @@ export default function LegislativeLiveRadar({
                         {isPassed && <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />}
                         {isPresent && <Clock className="w-2.5 h-2.5 text-amber-600" />}
                         {!isPassed && !isPresent && <FileText className="w-2.5 h-2.5 text-slate-500" />}
-                        <span>{item.action_type}</span>
+                        <span className="whitespace-nowrap">{item.action_type}</span>
                       </span>
                     </div>
 
@@ -276,19 +276,19 @@ export default function LegislativeLiveRadar({
                         <button
                           type="button"
                           onClick={() => onSelectAssemb(item.assemb_id)}
-                          className="font-bold text-slate-900 hover:text-indigo-600 transition-colors cursor-pointer"
+                          className="font-bold text-slate-900 hover:text-indigo-600 transition-colors cursor-pointer whitespace-nowrap"
                         >
                           {item.assemb_nm}
                         </button>
                         <span
-                          className={`px-1.5 py-0.2 rounded text-[10px] font-semibold border ${
+                          className={`px-1.5 py-0.2 rounded text-[10px] font-semibold border whitespace-nowrap ${
                             PARTY_COLORS[item.pltprt_nm] || "bg-gray-50 text-gray-700 border-gray-200"
                           }`}
                         >
                           {item.pltprt_nm}
                         </span>
                         <span
-                          className={`text-[11px] font-medium ${
+                          className={`text-[11px] font-medium whitespace-nowrap ${
                             isPassed
                               ? "text-emerald-700 font-bold"
                               : isPresent
