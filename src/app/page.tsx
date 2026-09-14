@@ -6,6 +6,7 @@ import HomeHeroSearch from "@/components/HomeHeroSearch";
 import DailyBillPollWidget from "@/components/DailyBillPollWidget";
 import MyDistrictWidget from "@/components/MyDistrictWidget";
 import CitizenReactionWidget from "@/components/CitizenReactionWidget";
+import LifeChangesWidget from "@/components/LifeChangesWidget";
 import { BillRankingRow } from "@/types/ranking";
 import {
   Trophy,
@@ -206,10 +207,13 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* 3. [신규] 2단계: 주간 시민 반응 레이더 (응원/감시 스탬프 TOP 3) */}
+        {/* 3. [신규] 생활 입법 Before & After (내 삶이 어떻게 바뀌나요?) */}
+        <LifeChangesWidget />
+
+        {/* 4. 주간 시민 반응 레이더 (응원/감시 스탬프 TOP 3) */}
         <CitizenReactionWidget allMembers={data.allMembers} />
 
-        {/* 4. 미니 거시 지표 요약 바 */}
+        {/* 5. 미니 거시 지표 요약 바 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm font-mono text-center">
           <div className="p-3 bg-slate-50/80 rounded-xl">
             <span className="text-xs sm:text-sm text-slate-500 block font-sans font-medium mb-0.5">등록 의원</span>
@@ -237,7 +241,7 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* 5. 3대 큐레이션 하이라이트 */}
+        {/* 6. 3대 큐레이션 하이라이트 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* 🏆 랭킹 픽 */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 flex flex-col justify-between space-y-4">
@@ -385,7 +389,7 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* 6. 평가 기준 배너 */}
+        {/* 7. 평가 기준 배너 */}
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="space-y-1.5">
             <h4 className="font-bold text-base sm:text-lg flex items-center gap-2">
