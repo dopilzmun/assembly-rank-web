@@ -7,6 +7,7 @@ import DailyBillPollWidget from "@/components/DailyBillPollWidget";
 import MyDistrictWidget from "@/components/MyDistrictWidget";
 import CitizenReactionWidget from "@/components/CitizenReactionWidget";
 import LifeChangesWidget from "@/components/LifeChangesWidget";
+import PersonaLawmakerWidget from "@/components/PersonaLawmakerWidget";
 import { BillRankingRow } from "@/types/ranking";
 import {
   Trophy,
@@ -179,7 +180,7 @@ export default async function HomePage() {
     <main className="py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
         
-        {/* 1. Hero 섹션 */}
+        {/* 1. Hero 검색 섹션 */}
         <div className="text-center space-y-3 py-2 sm:py-4">
           <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs sm:text-sm font-bold">
             <Sparkles className="w-4 h-4 text-indigo-600" />
@@ -197,7 +198,7 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* 2. 오늘의 투표 & 우리 동네 의원 위젯 (동일 높이) */}
+        {/* 2. 오늘의 투표 & 우리 동네 의원 위젯 */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
           <div className="lg:col-span-7 flex flex-col h-full">
             <DailyBillPollWidget />
@@ -207,13 +208,16 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* 3. [신규] 생활 입법 Before & After (내 삶이 어떻게 바뀌나요?) */}
+        {/* 3. 생활 입법 Before & After (내 삶이 어떻게 바뀌나요?) */}
         <LifeChangesWidget />
 
-        {/* 4. 주간 시민 반응 레이더 (응원/감시 스탬프 TOP 3) */}
+        {/* 4. [신규] 페르소나별 입법 성적표 (내 라이프스타일을 챙겨주는 의원) */}
+        <PersonaLawmakerWidget />
+
+        {/* 5. 주간 시민 반응 레이더 (응원/감시 스탬프 TOP 3) */}
         <CitizenReactionWidget allMembers={data.allMembers} />
 
-        {/* 5. 미니 거시 지표 요약 바 */}
+        {/* 6. 미니 거시 지표 요약 바 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm font-mono text-center">
           <div className="p-3 bg-slate-50/80 rounded-xl">
             <span className="text-xs sm:text-sm text-slate-500 block font-sans font-medium mb-0.5">등록 의원</span>
@@ -241,7 +245,7 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* 6. 3대 큐레이션 하이라이트 */}
+        {/* 7. 3대 큐레이션 하이라이트 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* 🏆 랭킹 픽 */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 flex flex-col justify-between space-y-4">
@@ -389,7 +393,7 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* 7. 평가 기준 배너 */}
+        {/* 8. 평가 기준 배너 */}
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="space-y-1.5">
             <h4 className="font-bold text-base sm:text-lg flex items-center gap-2">
