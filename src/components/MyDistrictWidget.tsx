@@ -22,29 +22,38 @@ interface MyDistrictWidgetProps {
   onSelectMember?: (member: BillRankingRow) => void;
 }
 
-// 상단 인터페이스 정의
+type FeedbackCategory = "praise" | "suggest" | "question" | "critic";
+
 interface FeedbackSummary {
   fdbk_sn: number;
   nck_nm: string;
-  fdbk_se: "praise" | "suggest" | "question" | "critic";
+  fdbk_se: FeedbackCategory;
   fdbk_cn: string;
   vrfc_yn: number;
   reg_dt: string;
-  // 호환용
+  // 하위 호환 필드
   feedback_id?: number;
   nickname?: string;
-  category?: "praise" | "suggest" | "question" | "critic";
+  category?: FeedbackCategory;
   content?: string;
   is_verified?: number;
   created_at?: string;
 }
 
-const CATEGORY_META = {
+const CATEGORY_META: Record<FeedbackCategory, { label: string; color: string }> = {
   praise: { label: "응원", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   suggest: { label: "건의", color: "bg-blue-50 text-blue-700 border-blue-200" },
   question: { label: "질문", color: "bg-amber-50 text-amber-700 border-amber-200" },
   critic: { label: "분발", color: "bg-rose-50 text-rose-700 border-rose-200" },
 };
+
+// undefined 인덱스 에러를 방지하는 안전한 헬퍼 함수
+function getCategoryMeta(cat?: string) {
+  if (cat && cat in CATEGORY_META) {
+    return CATEGORY_META[cat as FeedbackCategory];
+  }
+  return CATEGORY_META.praise;
+}
 
 export default function MyDistrictWidget({ allMembers, onSelectMember }: MyDistrictWidgetProps) {
   const [district, setDistrict] = useState<string>("");
@@ -208,14 +217,12 @@ export default function MyDistrictWidget({ allMembers, onSelectMember }: MyDistr
     setSelectedAssembId(m.assemb_id);
     localStorage.setItem("my_selected_assemb_id", m.assemb_id);
 
-    // 상세 선거구명(예: '용인시병')을 district로 갱신 (GPS 인증 상태 유지)
     if (m.rgn_nm) {
       const cleanRgn = m.rgn_nm.replace(/^(경기|서울|인천|부산|대구|광주|대전|울산|세종|강원|충북|충남|전북|전남|경북|경남|제주)\s*/, "");
       setDistrict(cleanRgn);
       setInputVal(cleanRgn);
       localStorage.setItem("my_district", cleanRgn);
 
-      // 인증 캐시의 district 이름도 갱신하여 일치 보장
       const cached = localStorage.getItem("district_gps_verified");
       if (cached) {
         try {
@@ -236,7 +243,6 @@ export default function MyDistrictWidget({ allMembers, onSelectMember }: MyDistr
     localStorage.setItem("my_district", clean);
     setIsEditing(false);
 
-    // 기존 GPS 인증 도시와 일치하면 인증을 유지, 아예 다른 도시일 경우만 해제
     const cached = localStorage.getItem("district_gps_verified");
     if (cached) {
       try {
@@ -288,7 +294,7 @@ export default function MyDistrictWidget({ allMembers, onSelectMember }: MyDistr
             </button>
           </div>
 
-          {/* 서브 라인: 등록 지역명 + 인증 배지 (절대 잘리지 않는 배치) */}
+          {/* 서브 라인: 등록 지역명 + 인증 배지 */}
           <div className="flex items-center gap-2 pl-9 flex-wrap text-xs">
             <span className="text-slate-500 font-medium whitespace-nowrap">
               {district ? `등록: ${district}` : "지역구 미등록"}
@@ -486,31 +492,45 @@ export default function MyDistrictWidget({ allMembers, onSelectMember }: MyDistr
                           한마디를 불러오는 중...
                         </div>
                       ) : latestFeedback ? (
-                        <div
-                          onClick={() => handleMemberClick(activeMember)}
-                          className="bg-indigo-50/40 hover:bg-indigo-50/80 border border-indigo-100/90 rounded-xl p-2.5 transition-all cursor-pointer group space-y-1.5 shadow-2xs"
-                        >
-                          <div className="flex items-center justify-between text-xs">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${CATEGORY_META[latestFeedback.category].color}`}>
-                                {CATEGORY_META[latestFeedback.category].label}
-                              </span>
-                              <span className="font-bold text-slate-800 text-[11px] whitespace-nowrap">{latestFeedback.nickname}</span>
-                              {latestFeedback.is_verified === 1 ? (
-                                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 whitespace-nowrap">
-                                  <ShieldCheck className="w-2.5 h-2.5" /> 인증 주민
-                                </span>
-                              ) : (
-                                <span className="px-1 text-[10px] text-slate-400 whitespace-nowrap">일반</span>
-                              )}
-                            </div>
-                            <span className="text-[10px] font-mono text-slate-400 whitespace-nowrap">{latestFeedback.created_at}</span>
-                          </div>
+                        (() => {
+                          const catMeta = getCategoryMeta(latestFeedback.fdbk_se || latestFeedback.category);
+                          const nickname = latestFeedback.nck_nm || latestFeedback.nickname || "익명 주민";
+                          const content = latestFeedback.fdbk_cn || latestFeedback.content || "";
+                          const isUserVerified = (latestFeedback.vrfc_yn ?? latestFeedback.is_verified) === 1;
+                          const dateText = latestFeedback.reg_dt || latestFeedback.created_at || "";
 
-                          <p className="text-xs text-slate-700 leading-snug break-keep line-clamp-2 font-normal group-hover:text-indigo-950 transition-colors">
-                            "{latestFeedback.content}"
-                          </p>
-                        </div>
+                          return (
+                            <div
+                              onClick={() => handleMemberClick(activeMember)}
+                              className="bg-indigo-50/40 hover:bg-indigo-50/80 border border-indigo-100/90 rounded-xl p-2.5 transition-all cursor-pointer group space-y-1.5 shadow-2xs"
+                            >
+                              <div className="flex items-center justify-between text-xs">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${catMeta.color}`}>
+                                    {catMeta.label}
+                                  </span>
+                                  <span className="font-bold text-slate-800 text-[11px] whitespace-nowrap">
+                                    {nickname}
+                                  </span>
+                                  {isUserVerified ? (
+                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 whitespace-nowrap">
+                                      <ShieldCheck className="w-2.5 h-2.5" /> 인증 주민
+                                    </span>
+                                  ) : (
+                                    <span className="px-1 text-[10px] text-slate-400 whitespace-nowrap">일반</span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] font-mono text-slate-400 whitespace-nowrap">
+                                  {dateText}
+                                </span>
+                              </div>
+
+                              <p className="text-xs text-slate-700 leading-snug break-keep line-clamp-2 font-normal group-hover:text-indigo-950 transition-colors">
+                                "{content}"
+                              </p>
+                            </div>
+                          );
+                        })()
                       ) : (
                         <div
                           onClick={() => handleMemberClick(activeMember)}
