@@ -5,16 +5,18 @@ import Link from "next/link";
 import { UserCheck, Award, Heart, CheckCircle2, ChevronRight, Briefcase, Baby, Home, Car, CreditCard, ShieldCheck } from "lucide-react";
 
 interface PersonaBill {
-  chng_seq: number;
   bill_id: string;
-  chng_nm: string;
-  tgt_cnts: string;
-  bfor_cnts: string;
-  aftr_cnts: string;
-  opertn_dd: string | null;
-  opertn_se: string;
-  symp_cnt: number;
   bill_nm: string;
+  process_stat: string;
+  process_dd: string | null;
+  chng_seq: number | null;
+  chng_nm: string | null;
+  tgt_cnts: string | null;
+  bfor_cnts: string | null;
+  aftr_cnts: string | null;
+  opertn_dd: string | null;
+  opertn_se: string | null;
+  symp_cnt: number;
 }
 
 interface PersonaMember {
@@ -76,7 +78,7 @@ export default function PersonaLawmakerWidget() {
             내 라이프스타일을 챙겨주는 의원은 누구일까요?
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            이념 대신 내 일상(월급, 보육, 전세금, 안전)에 진짜 도움되는 법을 통과시킨 실천형 국회의원입니다.
+            22대 국회 전체 본회의 가결 법안을 전수 분석하여, 내 삶에 직결된 법안을 가장 많이 통과시킨 의원 순위입니다.
           </p>
         </div>
       </div>
@@ -153,10 +155,12 @@ export default function PersonaLawmakerWidget() {
                         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
                         가결 {m.aprv_cnt}건
                       </span>
-                      <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 font-semibold">
-                        <Heart className="h-3.5 w-3.5 fill-rose-500 text-rose-500" />
-                        {m.symp_cnt}
-                      </span>
+                      {m.symp_cnt > 0 && (
+                        <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 font-semibold">
+                          <Heart className="h-3.5 w-3.5 fill-rose-500 text-rose-500" />
+                          {m.symp_cnt}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -173,18 +177,18 @@ export default function PersonaLawmakerWidget() {
                   {/* 대표 가결 입법 목록 */}
                   <div className="mt-3 space-y-2 border-t border-slate-100 pt-3 dark:border-slate-700/60">
                     <span className="text-[11px] font-bold text-slate-500 block dark:text-slate-400">
-                      대표 입법 성과
+                      대표 입법 성과 (최대 3건)
                     </span>
-                    {m.bills.slice(0, 2).map((b) => (
+                    {m.bills.map((b) => (
                       <div
-                        key={b.chng_seq}
+                        key={b.bill_id}
                         className="rounded-lg bg-slate-50 p-2.5 text-xs dark:bg-slate-800/90 border border-slate-100 dark:border-slate-700/40"
                       >
                         <p className="font-bold text-slate-800 dark:text-slate-200 line-clamp-1">
-                          {b.chng_nm}
+                          {b.chng_nm || b.bill_nm}
                         </p>
                         <p className="mt-1 text-[11px] text-blue-700 dark:text-blue-300 line-clamp-2">
-                          👉 {b.aftr_cnts}
+                          {b.aftr_cnts ? `👉 ${b.aftr_cnts}` : `✅ 본회의 ${b.process_stat} (${b.process_dd || "의결"})`}
                         </p>
                       </div>
                     ))}
