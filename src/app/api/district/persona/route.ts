@@ -11,6 +11,9 @@ interface MemberStatsRow extends RowDataPacket {
   pltprt_nm: string;
   ctgr_se: string;
   aprv_cnt: number;
+  pure_aprv_cnt: number;
+  alt_aprv_cnt: number;
+  aprv_scor: number;
   symp_cnt: number;
   rnkg: number;
 }
@@ -36,7 +39,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const ctgrSe = searchParams.get("ctgr_se") || "WORK";
 
-    // 1. 전체 가결 법안 모수 기반 상위 국회의원 6명 조회
+    // 1. 가중 점수 기준 상위 의원 6명 조회
     const [memberRows] = await pool.query<MemberStatsRow[]>(
       `SELECT 
         assemb_id,
@@ -45,11 +48,14 @@ export async function GET(req: NextRequest) {
         pltprt_nm,
         ctgr_se,
         aprv_cnt,
+        pure_aprv_cnt,
+        alt_aprv_cnt,
+        aprv_scor,
         symp_cnt,
         rnkg
        FROM vw_assemb_lvlhd_ctgr_stts_01
        WHERE ctgr_se = ?
-       ORDER BY rnkg ASC, aprv_cnt DESC, symp_cnt DESC
+       ORDER BY rnkg ASC, aprv_scor DESC, symp_cnt DESC
        LIMIT 6;`,
       [ctgrSe]
     );
@@ -60,7 +66,7 @@ export async function GET(req: NextRequest) {
 
     const assembIds = memberRows.map((m) => m.assemb_id);
 
-    // 2. 상위 의원들의 해당 분야 가결 법안 목록 (큐레이션 데이터 우선 정렬)
+    // 2. 상위 의원들의 대표 법안 목록 조회 (Before & After 등록 법안 최우선)
     const [billRows] = await pool.query<BillRow[]>(
       `SELECT 
         b.bill_id,
@@ -104,22 +110,32 @@ export async function GET(req: NextRequest) {
         pltprt_nm: m.pltprt_nm,
         ctgr_se: m.ctgr_se,
         aprv_cnt: Number(m.aprv_cnt),
+        pure_aprv_cnt: Number(m.pure_aprv_cnt),
+        alt_aprv_cnt: Number(m.alt_aprv_cnt),
+        aprv_scor: Number(m.aprv_scor),
         symp_cnt: Number(m.symp_cnt),
         rnkg: Number(m.rnkg),
-        bills: bills.slice(0, 3).map((b) => ({
-          bill_id: b.bill_id,
-          bill_nm: b.bill_nm,
-          process_stat: b.process_stat,
-          process_dd: b.process_dd,
-          chng_seq: b.chng_seq,
-          chng_nm: b.chng_nm,
-          tgt_cnts: b.tgt_cnts,
-          bfor_cnts: b.bfor_cnts,
-          aftr_cnts: b.aftr_cnts,
-          opertn_dd: b.opertn_dd,
-          opertn_se: b.opertn_se,
-          symp_cnt: Number(b.symp_cnt),
-        })),
+        bills: bills.slice(0, 3).map((b) => {
+          // '폐기' 단어를 배제하고 '대안반영 (병합 가결)'으로 변환
+          const cleanStat = b.process_stat?.includes("반영폐기")
+            ? "대안반영 (병합 가결)"
+            : b.process_stat;
+
+          return {
+            bill_id: b.bill_id,
+            bill_nm: b.bill_nm,
+            process_stat: cleanStat,
+            process_dd: b.process_dd,
+            chng_seq: b.chng_seq,
+            chng_nm: b.chng_nm,
+            tgt_cnts: b.tgt_cnts,
+            bfor_cnts: b.bfor_cnts,
+            aftr_cnts: b.aftr_cnts,
+            opertn_dd: b.opertn_dd,
+            opertn_se: b.opertn_se,
+            symp_cnt: Number(b.symp_cnt),
+          };
+        }),
       };
     });
 
