@@ -70,7 +70,6 @@ export default function PersonaLawmakerWidget() {
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      {/* 헤더 */}
       <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="inline-flex items-center gap-1.5 rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
@@ -86,7 +85,6 @@ export default function PersonaLawmakerWidget() {
         </div>
       </div>
 
-      {/* 페르소나 선택 탭 바 */}
       <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
         {PERSONAS.map((p) => {
           const Icon = p.icon;
@@ -112,7 +110,6 @@ export default function PersonaLawmakerWidget() {
         })}
       </div>
 
-      {/* 활성화된 페르소나 설명 박스 */}
       {activePersonaObj && (
         <div className="mt-3 flex items-center gap-2 rounded-lg bg-slate-100/70 px-3.5 py-2 text-xs text-slate-600 dark:bg-slate-800/60 dark:text-slate-300">
           <span className="font-semibold text-indigo-600 dark:text-indigo-400">[{activePersonaObj.label}]</span>
@@ -120,7 +117,6 @@ export default function PersonaLawmakerWidget() {
         </div>
       )}
 
-      {/* 랭킹 리스트 */}
       <div className="mt-5">
         {loading ? (
           <div className="py-12 text-center text-sm text-slate-400">의원별 생활 입법 성적을 분석하는 중...</div>
@@ -136,7 +132,6 @@ export default function PersonaLawmakerWidget() {
                 className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-800/60"
               >
                 <div>
-                  {/* 순위 및 가결 성과 요약 */}
                   <div className="flex items-center justify-between">
                     <span
                       className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${
@@ -154,7 +149,7 @@ export default function PersonaLawmakerWidget() {
                     </span>
 
                     <div className="flex items-center gap-2 text-xs">
-                      <span className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-200 font-semibold" title={`단독가결 ${m.pure_aprv_cnt}건 + 대안반영 ${m.alt_aprv_cnt}건 (가중치 적용 점수: ${m.aprv_scor}점)`}>
+                      <span className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-200 font-semibold" title={`단독가결 ${m.pure_aprv_cnt}건 + 대안반영 ${m.alt_aprv_cnt}건 (가중치 점수: ${m.aprv_scor}점)`}>
                         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
                         실질가결 {m.aprv_cnt}건
                       </span>
@@ -167,7 +162,6 @@ export default function PersonaLawmakerWidget() {
                     </div>
                   </div>
 
-                  {/* 의원명 및 실적 세부 구성 뱃지 */}
                   <div className="mt-3 flex items-baseline justify-between">
                     <div className="flex items-baseline gap-2">
                       <strong className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
@@ -182,7 +176,6 @@ export default function PersonaLawmakerWidget() {
                     </span>
                   </div>
 
-                  {/* 대표 가결 입법 목록 */}
                   <div className="mt-3 space-y-2 border-t border-slate-100 pt-3 dark:border-slate-700/60">
                     <span className="text-[11px] font-bold text-slate-500 block dark:text-slate-400">
                       대표 입법 성과 (최대 3건)
@@ -203,9 +196,9 @@ export default function PersonaLawmakerWidget() {
                   </div>
                 </div>
 
-                {/* 하단 의원 전체 성적표 이동 링크 (/rankings 검색 연동) */}
+                {/* 하단 의원 상세 성적표 직접 이동 링크 */}
                 <Link
-                  href={`/rankings?search=${encodeURIComponent(m.assemb_nm)}`}
+                  href={`/rankings/${m.assemb_id}`}
                   className="mt-4 inline-flex w-full items-center justify-center gap-1 rounded-lg bg-slate-100 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-indigo-50 hover:text-indigo-700 dark:bg-slate-700/70 dark:text-slate-200 dark:hover:bg-indigo-950/60 dark:hover:text-indigo-300"
                 >
                   <span>의원 전체 성적표 보기</span>
