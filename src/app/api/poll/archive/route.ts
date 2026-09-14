@@ -2,54 +2,58 @@ import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { RowDataPacket } from "mysql2";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const query = searchParams.get("q") || "";
+    const search = searchParams.get("search") || "";
 
-    let sql = `
+    let query = `
       SELECT 
-        poll_id,
-        bill_id,
-        title,
-        summary,
-        pro_cnt,
-        con_cnt,
-        DATE_FORMAT(poll_date, '%Y-%m-%d') as poll_date
+        poll_id, 
+        poll_nm, 
+        smry_cn, 
+        pro_cnt, 
+        con_cnt, 
+        DATE_FORMAT(poll_dd, '%Y-%m-%d') as poll_dd
       FROM daily_bill_poll
-      WHERE poll_date < CURRENT_DATE()
+      WHERE actv_yn = 1
     `;
-    const params: any[] = [];
+    const params: string[] = [];
 
-    if (query.trim()) {
-      sql += ` AND (title LIKE ? OR summary LIKE ?)`;
-      params.push(`%${query.trim()}%`, `%${query.trim()}%`);
+    if (search.trim()) {
+      query += ` AND (poll_nm LIKE ? OR smry_cn LIKE ?)`;
+      params.push(`%${search.trim()}%`, `%${search.trim()}%`);
     }
 
-    sql += ` ORDER BY poll_date DESC, poll_id DESC LIMIT 50;`;
+    query += ` ORDER BY poll_dd DESC, poll_id DESC LIMIT 100;`;
 
-    const [rows] = await pool.query<RowDataPacket[]>(sql, params);
+    const [rows] = await pool.query<RowDataPacket[]>(query, params);
 
-    const archives = rows.map((r) => {
-      const total = Number(r.pro_cnt) + Number(r.con_cnt);
-      const proRate = total > 0 ? Math.round((Number(r.pro_cnt) / total) * 100) : 50;
+    const polls = rows.map((p) => {
+      const total = Number(p.pro_cnt) + Number(p.con_cnt);
+      const proRate = total > 0 ? Math.round((Number(p.pro_cnt) / total) * 100) : 50;
       return {
-        poll_id: r.poll_id,
-        bill_id: r.bill_id,
-        title: r.title,
-        summary: r.summary,
-        pro_cnt: Number(r.pro_cnt),
-        con_cnt: Number(r.con_cnt),
+        poll_id: p.poll_id,
+        poll_nm: p.poll_nm,
+        smry_cn: p.smry_cn,
+        pro_cnt: Number(p.pro_cnt),
+        con_cnt: Number(p.con_cnt),
         total_cnt: total,
         pro_rate: proRate,
         con_rate: 100 - proRate,
-        poll_date: r.poll_date,
+        poll_dd: p.poll_dd,
+        // 레거시 호환
+        title: p.poll_nm,
+        summary: p.smry_cn,
+        poll_date: p.poll_dd,
       };
     });
 
-    return NextResponse.json({ archives });
+    return NextResponse.json({ polls });
   } catch (error) {
-    console.error("Failed to fetch poll archives:", error);
-    return NextResponse.json({ archives: [] }, { status: 500 });
+    console.error("Failed to fetch archive polls:", error);
+    return NextResponse.json({ polls: [] }, { status: 500 });
   }
 }

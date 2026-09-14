@@ -22,13 +22,21 @@ interface MyDistrictWidgetProps {
   onSelectMember?: (member: BillRankingRow) => void;
 }
 
+// 상단 인터페이스 정의
 interface FeedbackSummary {
-  feedback_id: number;
-  nickname: string;
-  category: "praise" | "suggest" | "question" | "critic";
-  content: string;
-  is_verified: number;
-  created_at: string;
+  fdbk_sn: number;
+  nck_nm: string;
+  fdbk_se: "praise" | "suggest" | "question" | "critic";
+  fdbk_cn: string;
+  vrfc_yn: number;
+  reg_dt: string;
+  // 호환용
+  feedback_id?: number;
+  nickname?: string;
+  category?: "praise" | "suggest" | "question" | "critic";
+  content?: string;
+  is_verified?: number;
+  created_at?: string;
 }
 
 const CATEGORY_META = {

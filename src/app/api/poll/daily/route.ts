@@ -3,19 +3,16 @@ import pool from "@/lib/db";
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 import crypto from "crypto";
 
-// Vercel Serverless 동적 실행 강제 (응답 캐싱 방지)
 export const dynamic = "force-dynamic";
 
 function getClientIpHash(req: NextRequest, pollId: number): string {
   const forwardedFor = req.headers.get("x-forwarded-for");
   const realIp = req.headers.get("x-real-ip");
   const rawIp = forwardedFor ? forwardedFor.split(",")[0].trim() : realIp || "127.0.0.1";
-  
   const salt = process.env.POLL_SALT || "assembly_poll_salt_2024";
   return crypto.createHash("sha256").update(`${rawIp}_${salt}_${pollId}`).digest("hex");
 }
 
-// Node.js 환경에서 서버 위치와 무관하게 정확한 KST YYYY-MM-DD 추출
 function getTodayKst(): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Seoul",
@@ -29,24 +26,23 @@ export async function GET(req: NextRequest) {
   try {
     const todayKst = getTodayKst();
 
-    // 1. 한국 표준시(KST) 오늘 이하의 활성 안건 중 가장 최신 1건 조회
+    // 1. 한국 표준시(KST) 오늘 이하 활성 안건 최신 1건 조회
     const [rows] = await pool.query<RowDataPacket[]>(
-      `SELECT poll_id, title, summary, pro_cnt, con_cnt, DATE_FORMAT(poll_date, '%Y-%m-%d') as poll_date
+      `SELECT poll_id, poll_nm, smry_cn, pro_cnt, con_cnt, DATE_FORMAT(poll_dd, '%Y-%m-%d') as poll_dd
        FROM daily_bill_poll
-       WHERE is_active = 1 
-         AND poll_date <= ?
-       ORDER BY poll_date DESC, poll_id DESC
+       WHERE actv_yn = 1 
+         AND poll_dd <= ?
+       ORDER BY poll_dd DESC, poll_id DESC
        LIMIT 1;`,
       [todayKst]
     );
 
-    // 2. 만약 오늘자 안건이 아직 등록되지 않았다면 가장 최근 안건을 노출
     if (rows.length === 0) {
       const [fallbackRows] = await pool.query<RowDataPacket[]>(
-        `SELECT poll_id, title, summary, pro_cnt, con_cnt, DATE_FORMAT(poll_date, '%Y-%m-%d') as poll_date
+        `SELECT poll_id, poll_nm, smry_cn, pro_cnt, con_cnt, DATE_FORMAT(poll_dd, '%Y-%m-%d') as poll_dd
          FROM daily_bill_poll
-         WHERE is_active = 1
-         ORDER BY poll_date DESC, poll_id DESC
+         WHERE actv_yn = 1
+         ORDER BY poll_dd DESC, poll_id DESC
          LIMIT 1;`
       );
       if (fallbackRows.length === 0) {
@@ -59,29 +55,34 @@ export async function GET(req: NextRequest) {
     const total = Number(p.pro_cnt) + Number(p.con_cnt);
     const proRate = total > 0 ? Math.round((Number(p.pro_cnt) / total) * 100) : 50;
 
-    // 3. 현재 접속 IP의 투표 여부 확인
-    const ipHash = getClientIpHash(req, p.poll_id);
+    // 2. 현재 IP의 투표 참여 여부 확인
+    const ipHashVal = getClientIpHash(req, p.poll_id);
     const [logRows] = await pool.query<RowDataPacket[]>(
-      `SELECT user_choice FROM daily_bill_poll_log WHERE poll_id = ? AND ip_hash = ? LIMIT 1;`,
-      [p.poll_id, ipHash]
+      `SELECT vote_se FROM daily_bill_poll_log WHERE poll_id = ? AND ip_hash_val = ? LIMIT 1;`,
+      [p.poll_id, ipHashVal]
     );
 
-    const userChoice = logRows.length > 0 ? logRows[0].user_choice : null;
+    const voteSe = logRows.length > 0 ? logRows[0].vote_se : null;
 
     return NextResponse.json(
       {
         poll: {
           poll_id: p.poll_id,
-          title: p.title,
-          summary: p.summary,
+          poll_nm: p.poll_nm,
+          smry_cn: p.smry_cn,
           pro_cnt: Number(p.pro_cnt),
           con_cnt: Number(p.con_cnt),
           total_cnt: total,
           pro_rate: proRate,
           con_rate: 100 - proRate,
-          poll_date: p.poll_date,
-          has_voted: Boolean(userChoice),
-          user_choice: userChoice,
+          poll_dd: p.poll_dd,
+          has_voted: Boolean(voteSe),
+          vote_se: voteSe,
+          // 하위 호환성 필드 유지
+          title: p.poll_nm,
+          summary: p.smry_cn,
+          poll_date: p.poll_dd,
+          user_choice: voteSe,
         },
       },
       {
@@ -105,28 +106,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "잘못된 투표 요청입니다." }, { status: 400 });
     }
 
-    const ipHash = getClientIpHash(req, poll_id);
+    const ipHashVal = getClientIpHash(req, poll_id);
 
     await connection.beginTransaction();
 
-    // 서버 사이드 중복 투표 검증
+    // 중복 투표 검증
     const [existing] = await connection.query<RowDataPacket[]>(
-      `SELECT log_id FROM daily_bill_poll_log WHERE poll_id = ? AND ip_hash = ? FOR UPDATE;`,
-      [poll_id, ipHash]
+      `SELECT poll_vote_sn FROM daily_bill_poll_log WHERE poll_id = ? AND ip_hash_val = ? FOR UPDATE;`,
+      [poll_id, ipHashVal]
     );
 
     if (existing.length > 0) {
       await connection.rollback();
-      return NextResponse.json(
-        { message: "이미 본 투표에 참여하셨습니다." },
-        { status: 409 }
-      );
+      return NextResponse.json({ message: "이미 본 투표에 참여하셨습니다." }, { status: 409 });
     }
 
-    // 투표 로그 기록
+    // 투표 로그 기록 (표준 컬럼)
     await connection.query<ResultSetHeader>(
-      `INSERT INTO daily_bill_poll_log (poll_id, ip_hash, user_choice) VALUES (?, ?, ?);`,
-      [poll_id, ipHash, choice]
+      `INSERT INTO daily_bill_poll_log (poll_id, ip_hash_val, vote_se) VALUES (?, ?, ?);`,
+      [poll_id, ipHashVal, choice]
     );
 
     // 투표수 증가
