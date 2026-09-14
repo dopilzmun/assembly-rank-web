@@ -15,16 +15,29 @@ function getClientIpHash(req: NextRequest, pollId: number): string {
   return crypto.createHash("sha256").update(`${rawIp}_${salt}_${pollId}`).digest("hex");
 }
 
+// Node.js 환경에서 서버 위치와 무관하게 정확한 KST YYYY-MM-DD 추출
+function getTodayKst(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 export async function GET(req: NextRequest) {
   try {
-    // 1. 한국 표준시(KST) 기준 오늘 이하의 활성 안건 중 가장 최신 1건 조회
+    const todayKst = getTodayKst();
+
+    // 1. 한국 표준시(KST) 오늘 이하의 활성 안건 중 가장 최신 1건 조회
     const [rows] = await pool.query<RowDataPacket[]>(
       `SELECT poll_id, title, summary, pro_cnt, con_cnt, DATE_FORMAT(poll_date, '%Y-%m-%d') as poll_date
        FROM daily_bill_poll
        WHERE is_active = 1 
-         AND poll_date <= DATE(CONVERT_TZ(NOW(), '+00:00', '+09:00'))
+         AND poll_date <= ?
        ORDER BY poll_date DESC, poll_id DESC
-       LIMIT 1;`
+       LIMIT 1;`,
+      [todayKst]
     );
 
     // 2. 만약 오늘자 안건이 아직 등록되지 않았다면 가장 최근 안건을 노출
