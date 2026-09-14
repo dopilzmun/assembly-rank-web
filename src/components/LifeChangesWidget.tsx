@@ -27,6 +27,7 @@ const CATEGORIES = [
   { code: "HOUSE", label: "주거/부동산" },
   { code: "TRAF", label: "교통/안전" },
   { code: "FIN", label: "금융/소비" },
+  { code: "LIFE", label: "생활" },
 ];
 
 export default function LifeChangesWidget() {
