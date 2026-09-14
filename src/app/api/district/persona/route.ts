@@ -4,18 +4,31 @@ import { RowDataPacket } from "mysql2";
 
 export const dynamic = "force-dynamic";
 
-interface MemberStatsRow extends RowDataPacket {
+interface PersonaMemberRow extends RowDataPacket {
   assemb_id: string;
   age: number;
   assemb_nm: string;
   pltprt_nm: string;
-  ctgr_se: string;
-  aprv_cnt: number;
+  rgn_nm: string | null;
+  cmit_nm: string | null;
+  term_start_dd: string | null;
+  is_deferred: number;
+  monthly_pace: number;
+  ttl_motn_cnt: number;
   pure_aprv_cnt: number;
   alt_aprv_cnt: number;
-  aprv_scor: number;
-  symp_cnt: number;
+  aprv_cnt: number;
+  dss_cnt: number;
+  aprv_rate: number;
+  cmt_present_cnt: number;
+  cmt_present_rate: number;
+  avg_cmt_days: number | null;
+  own_cmit_motn_cnt: number;
+  own_cmit_motn_rate: number;
+  score: number;
   rnkg: number;
+  ctgr_se: string;
+  symp_cnt: number;
 }
 
 interface BillRow extends RowDataPacket {
@@ -39,23 +52,37 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const ctgrSe = searchParams.get("ctgr_se") || "WORK";
 
-    // 1. 가중 점수 기준 상위 의원 6명 조회
-    const [memberRows] = await pool.query<MemberStatsRow[]>(
+    // 1. 페르소나 통계 뷰와 기존 랭킹 뷰를 조인하여 온전한 BillRankingRow 데이터셋 확보
+    const [memberRows] = await pool.query<PersonaMemberRow[]>(
       `SELECT 
-        assemb_id,
-        age,
-        assemb_nm,
-        pltprt_nm,
-        ctgr_se,
-        aprv_cnt,
-        pure_aprv_cnt,
-        alt_aprv_cnt,
-        aprv_scor,
-        symp_cnt,
-        rnkg
-       FROM vw_assemb_lvlhd_ctgr_stts_01
-       WHERE ctgr_se = ?
-       ORDER BY rnkg ASC, aprv_scor DESC, symp_cnt DESC
+        v.assemb_id,
+        v.age,
+        v.assemb_nm,
+        v.pltprt_nm,
+        v.rgn_nm,
+        v.cmit_nm,
+        DATE_FORMAT(v.term_start_dd, '%Y-%m-%d') AS term_start_dd,
+        v.is_deferred,
+        v.monthly_pace,
+        v.ttl_motn_cnt,
+        v.pure_aprv_cnt,
+        v.alt_aprv_cnt,
+        v.aprv_cnt,
+        v.dss_cnt,
+        v.aprv_rate,
+        v.cmt_present_cnt,
+        v.cmt_present_rate,
+        v.avg_cmt_days,
+        v.own_cmit_motn_cnt,
+        v.own_cmit_motn_rate,
+        v.score,
+        s.rnkg,
+        s.ctgr_se,
+        s.symp_cnt
+       FROM vw_assemb_lvlhd_ctgr_stts_01 s
+       JOIN vw_bill_efct_rnkg_01 v ON s.assemb_id = v.assemb_id AND s.age = v.age
+       WHERE s.ctgr_se = ?
+       ORDER BY s.rnkg ASC, s.aprv_scor DESC, s.symp_cnt DESC
        LIMIT 6;`,
       [ctgrSe]
     );
@@ -66,7 +93,7 @@ export async function GET(req: NextRequest) {
 
     const assembIds = memberRows.map((m) => m.assemb_id);
 
-    // 2. 상위 의원들의 대표 법안 목록 조회 (Before & After 등록 법안 최우선)
+    // 2. 해당 의원들의 페르소나별 대표 가결 입법 목록 조회
     const [billRows] = await pool.query<BillRow[]>(
       `SELECT 
         b.bill_id,
@@ -105,18 +132,33 @@ export async function GET(req: NextRequest) {
     const membersWithBills = memberRows.map((m) => {
       const bills = billRows.filter((b) => b.repve_assemb_id === m.assemb_id);
       return {
+        // 기존 랭킹 규격(BillRankingRow) 전체 프로퍼티 포함
         assemb_id: m.assemb_id,
+        age: m.age,
         assemb_nm: m.assemb_nm,
         pltprt_nm: m.pltprt_nm,
-        ctgr_se: m.ctgr_se,
-        aprv_cnt: Number(m.aprv_cnt),
+        rgn_nm: m.rgn_nm,
+        cmit_nm: m.cmit_nm,
+        term_start_dd: m.term_start_dd,
+        is_deferred: Number(m.is_deferred),
+        monthly_pace: Number(m.monthly_pace),
+        ttl_motn_cnt: Number(m.ttl_motn_cnt),
         pure_aprv_cnt: Number(m.pure_aprv_cnt),
         alt_aprv_cnt: Number(m.alt_aprv_cnt),
-        aprv_scor: Number(m.aprv_scor),
-        symp_cnt: Number(m.symp_cnt),
+        aprv_cnt: Number(m.aprv_cnt),
+        dss_cnt: Number(m.dss_cnt),
+        aprv_rate: Number(m.aprv_rate),
+        cmt_present_cnt: Number(m.cmt_present_cnt),
+        cmt_present_rate: Number(m.cmt_present_rate),
+        avg_cmt_days: m.avg_cmt_days !== null ? Number(m.avg_cmt_days) : null,
+        own_cmit_motn_cnt: Number(m.own_cmit_motn_cnt),
+        own_cmit_motn_rate: Number(m.own_cmit_motn_rate),
+        score: Number(m.score),
         rnkg: Number(m.rnkg),
+        ctgr_se: m.ctgr_se,
+        symp_cnt: Number(m.symp_cnt),
+        // 페르소나 카드 내 표시용 대표 법안 배열
         bills: bills.slice(0, 3).map((b) => {
-          // '폐기' 단어를 배제하고 '대안반영 (병합 가결)'으로 변환
           const cleanStat = b.process_stat?.includes("반영폐기")
             ? "대안반영 (병합 가결)"
             : b.process_stat;
