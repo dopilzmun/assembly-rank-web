@@ -146,3 +146,6 @@
 * **2026-09-15 (Phase 1 UI/UX 개선):** 메인 홈 화면 4대 테마 Zone 구획화 및 제브라 섹셔닝 적용.
 * **2026-09-15 (시민 스탬프 데이터 파이프라인 정상화):** `assemb_stamp_log` 물리 테이블 DDL 보장, Next.js 16 비동기 `params` 처리(`/api/assemblies/[assembId]/stamp`), 주간 요약 API(`/api/stamps/weekly-summary`)와 위젯(`CitizenReactionWidget`) 간 응답 데이터 키 정합성 복구 완료.
 * **2026-09-15 (홈 UX 순서 재배치 - Option A 적용):** `CitizenReactionWidget`을 Zone 2로 전진 배치.
+* **2026-09-15 (Phase 2 UI/UX 카드 통일 & 폴리싱):** Zone 1의 `DailyBillPollWidget`과 `MyDistrictWidget`에 높이 균등(`h-full flex flex-col justify-between`) 구조, 캡슐형 헤더 뱃지, 2줄 말줄임(`line-clamp-2`)을 적용하여 텍스트 길이에 따른 레이아웃 불균형 해소.
+* **2026-09-15 (시민 스탬프 데이터 파이프라인 정상화):** `assemb_stamp_log` 물리 테이블 DDL 보장 및 Next.js 16 비동기 파라미터 처리 완료.
+* **2026-09-15 (홈 UX 순서 재배치 - Option A 적용):** `CitizenReactionWidget`을 Zone 2로 전진 배치.
