@@ -15,24 +15,22 @@
 ---
 
 ### 🏠 1. 홈 화면 (`src/app/page.tsx` - Server Component)
-- `HomeHeroSearch.tsx` (통합 검색 바)
-- [Zone 1] 참여 & 동네 의원
+- [Zone 1: 오늘의 참여 & 동네 의원] (배경: White)
+  ├─ `HomeHeroSearch.tsx` (통합 검색 바)
   ├─ `DailyBillPollWidget.tsx` (오늘의 쟁점 법안 1초 투표)
   └─ `MyDistrictWidget.tsx` (우리 동네 의원, `allMembers` Props 수신)
        └─ `AssembDetailDrawer.tsx` (의원 상세 성적표 Drawer)
-- [Zone 2] 내 삶의 입법 체감
+- [Zone 2: 화제의 의원 & 시민 여론 레이더] (배경: Slate-50)
+  └─ `CitizenReactionWidget.tsx` (주간 시민 반응 레이더, `allMembers` Props 수신 - 전진 배치)
+       └─ `AssembDetailDrawer.tsx`
+- [Zone 3: 내 삶의 입법 체감 & 맞춤 의원] (배경: White)
   ├─ `LifeChangesWidget.tsx` (생활 입법 Before & After)
   └─ `PersonaLawmakerWidget.tsx` (페르소나별 입법 성적표)
-- [Zone 3] 데이터 랩 & 거시 통계
-- [Zone 4] 시민 참여 광장
-  └─ `CitizenReactionWidget.tsx` (주간 시민 반응 레이더, `allMembers` Props 수신)
        └─ `AssembDetailDrawer.tsx`
-- [미니 거시 지표 요약 바] (등록 의원, 대표발의 건수, 상임위 심사착수율, 본회의 실질가결률)
-- [3대 큐레이션 하이라이트]
-  ├─ 입법 랭킹 하이라이트 (제22대 종합 1위 & 최다 본회의 실질가결)
-  ├─ 최근 본회의 가결 법안 속보 (3건)
-  └─ 상임위 심사 속도 진단 (최속 vs 최장 병목 소관위 대조)
-- [평가 기준 배너] (실질가결 45점 + 상임위 상정 35점 + 발의 규모 20점 기준 안내)
+- [Zone 4: 제22대 팩트체크 & 입법 데이터 랩] (배경: Slate-50)
+  ├─ [KPI Bar] 재적의원, 대표발의, 상정률, 가결률 거시 요약
+  ├─ [3대 하이라이트] 종합 1위 의원, 가결 속보, 상임위 심사 속도 병목 진단
+  └─ [평가 산식 배너] 실질가결 45점 + 상임위 상정 35점 + 발의 규모 20점 안내
 
 ---
 
@@ -144,3 +142,5 @@
 * **2026-09-15:** 페르소나 위젯(`PersonaLawmakerWidget`) 상세 보기를 `AssembDetailDrawer`로 통합, `/api/assemblies/[assembId]/bills` 엔드포인트 연동 정상화, `HexagonRadarChart` 최상단 배치.
 * **2026-09-15 (TS Build Fix):** `page.tsx`에서 `vw_bill_efct_rnkg_01` 300인 전원 데이터(`allMembers`) 조회 로직 복원하여 `MyDistrictWidget` 및 `CitizenReactionWidget` 컴포넌트 TS2741 Props 누락 빌드 에러 해결.
 * **2026-09-15 (Phase 1 UI/UX 개선):** 메인 홈 화면(`src/app/page.tsx`) 4대 테마 Zone 구획화(참여, 생활입법, 데이터랩, 시민광장) 및 제브라 섹셔닝 적용.
+* **2026-09-15 (홈 UX 순서 재배치 - Option A 적용):** 사용자 몰입도 극대화를 위해 `CitizenReactionWidget`을 상단(Zone 2)으로 전진 배치. [참여/동네 → 시민여론/화제의 의원 → 생활입법/페르소나 → 데이터랩/팩트체크]의 4-Zone 스토리텔링 흐름 완성.
+* **2026-09-15 (Phase 1 UI/UX 개선):** 메인 홈 화면 4대 테마 Zone 구획화 및 제브라 섹셔닝 적용.
