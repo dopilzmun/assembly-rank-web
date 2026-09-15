@@ -157,3 +157,7 @@
 * **2026-09-15 (Phase 2-2 UI/UX Zone 3 폴리싱):** 
   - `LifeChangesWidget`: 카테고리 필터 캡슐화, Before(취소선/음영) vs After(에메랄드/가독성) 명암 대비 극대화 및 공감 버튼 인터랙션 개선.
   - `PersonaLawmakerWidget`: 6대 라이프스타일 탭 디자인 정돈, TOP 6 의원 카드 그리드 균일화, `page.tsx`로부터 `allMembers` Props 연동을 통해 클릭 시 `AssembDetailDrawer` 육각 차트 완벽 표출.
+* **2026-09-15 (생활입법 카테고리 매칭 및 드로어 법안 조회 SQL 파싱 안정화):** 
+  - `LifeChangesWidget`: `/api/district/life-changes`에 키워드 분리 매칭(`LIKE`) 및 6대 분야별 대표 실질가결 법안 자동 시딩(Auto-seeding) 로직 적용하여 카테고리별 필터 정상화.
+  - `AssembDetailDrawer`: `/api/assemblies/[assembId]/bills` 쿼리에서 MySQL2의 `LIMIT ?` 바인딩 파싱 에러를 정수 직접 주입(`LIMIT ${safeLimit}`)으로 원천 차단하여 최근 발의 법안 목록이 정상 출력되도록 수정.
+  - `PersonaLawmakerWidget`: ID 매칭 실패 시 성명/정당 매칭 폴백 적용하여 드로어 데이터 공백 현상 해소.

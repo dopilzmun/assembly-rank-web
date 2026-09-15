@@ -118,7 +118,7 @@ export default async function HomePage() {
       slowestCmit = cmitRows[cmitRows.length - 1];
     }
 
-    // 5. 전체 300인 의원 랭킹 데이터 (MyDistrictWidget 및 CitizenReactionWidget 전송용)
+    // 5. 전체 300인 의원 랭킹 데이터 (전 위젯 공통 주입)
     const [allMemberRows] = await pool.query<RowDataPacket[]>(
       `SELECT 
         assemb_id,
@@ -158,17 +158,13 @@ export default async function HomePage() {
 
       {/* =========================================================
           ZONE 1. 오늘의 참여 & 우리 동네 (Daily Engagement)
-          배경: Clean White
           ========================================================= */}
       <section className="bg-white dark:bg-slate-950 py-8 sm:py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8">
-          
-          {/* 1.1 통합 검색 바 */}
           <div>
             <HomeHeroSearch />
           </div>
 
-          {/* 1.2 오늘의 쟁점 투표 & 우리 동네 의원실 (2분할 레이아웃) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             <div className="lg:col-span-6 h-full">
               <DailyBillPollWidget />
@@ -177,18 +173,15 @@ export default async function HomePage() {
               <MyDistrictWidget allMembers={allMembers} />
             </div>
           </div>
-
         </div>
       </section>
 
 
       {/* =========================================================
-          ZONE 2. [전진 배치] 화제의 의원 & 주간 시민 여론 레이더 (Citizen Sentiment)
-          배경: Soft Slate-50 / 테두리 구분선
+          ZONE 2. [전진 배치] 화제의 의원 & 실시간 시민 감정 레이더
           ========================================================= */}
       <section className="bg-slate-50/70 dark:bg-slate-900/50 border-y border-slate-200/80 dark:border-slate-800/80 py-12 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8">
-          
           <div className="flex flex-col gap-2">
             <div className="inline-flex items-center gap-1.5 self-start rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700 dark:bg-rose-950/70 dark:text-rose-300">
               <Users className="h-3.5 w-3.5" />
@@ -202,21 +195,16 @@ export default async function HomePage() {
             </p>
           </div>
 
-          {/* 주간 시민 반응 레이더 컴포넌트 */}
           <CitizenReactionWidget allMembers={allMembers} />
-
         </div>
       </section>
 
 
       {/* =========================================================
-          ZONE 3. 내 삶의 입법 체감 & 맞춤 의원 (Life & Persona Legislation)
-          배경: Clean White
+          ZONE 3. 내 삶의 입법 체감 & 맞춤 의원 (Life & Persona)
           ========================================================= */}
       <section className="bg-white dark:bg-slate-950 py-12 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-10">
-          
-          {/* 3.1 섹션 통합 헤더 */}
           <div className="flex flex-col gap-2">
             <div className="inline-flex items-center gap-1.5 self-start rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700 dark:bg-indigo-950/70 dark:text-indigo-300">
               <Sparkles className="h-3.5 w-3.5" />
@@ -230,24 +218,20 @@ export default async function HomePage() {
             </p>
           </div>
 
-          {/* 3.2 생활 변화 Before & After 위젯 */}
+          {/* 3.1 생활 변화 Before & After 위젯 */}
           <LifeChangesWidget />
 
-          {/* 3.3 페르소나별 입법 성적표 위젯 */}
+          {/* 3.2 페르소나별 입법 성적표 위젯 (전체 300인 데이터 주입) */}
           <PersonaLawmakerWidget allMembers={allMembers} />
-
         </div>
       </section>
 
 
       {/* =========================================================
           ZONE 4. 제22대 팩트체크 & 데이터 랩 (Legislative Data Lab)
-          배경: Soft Slate-50 / 상단 구분선
           ========================================================= */}
       <section className="bg-slate-50/70 dark:bg-slate-900/50 border-t border-slate-200/80 dark:border-slate-800/80 py-12 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-10">
-          
-          {/* 4.1 섹션 헤더 */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
               <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/70 dark:text-blue-300">
@@ -271,7 +255,7 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          {/* 4.2 거시 핵심 지표 요약 바 (KPI Bar) */}
+          {/* 거시 핵심 지표 요약 바 */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 dark:border-slate-800 dark:bg-slate-900">
               <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">재적 의원</span>
@@ -306,10 +290,8 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* 4.3 3대 큐레이션 하이라이트 */}
+          {/* 3대 하이라이트 */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            
-            {/* 하이라이트 1: 종합 1위 의원 카드 */}
             <div className="rounded-2xl border border-slate-200 bg-linear-to-br from-indigo-50/50 via-white to-white p-5 shadow-xs dark:border-slate-800 dark:from-slate-900/80 dark:to-slate-900">
               <div className="flex items-center justify-between">
                 <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-black text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
@@ -355,7 +337,6 @@ export default async function HomePage() {
               )}
             </div>
 
-            {/* 하이라이트 2: 최근 본회의 가결 법안 속보 */}
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                 <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-slate-100">
@@ -386,7 +367,6 @@ export default async function HomePage() {
               </div>
             </div>
 
-            {/* 하이라이트 3: 상임위 심사 속도 진단 */}
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
@@ -430,10 +410,9 @@ export default async function HomePage() {
                 * 발의 후 상임위 첫 상정까지 걸린 소요일 기준
               </span>
             </div>
-
           </div>
 
-          {/* 4.4 100점 평가 산식 배너 */}
+          {/* 100점 평가 산식 배너 */}
           <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5 dark:border-indigo-950/60 dark:bg-indigo-950/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="space-y-1">
               <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300">
@@ -451,7 +430,6 @@ export default async function HomePage() {
               <span className="rounded-lg bg-white px-2.5 py-1.5 shadow-xs dark:bg-slate-800">발의 20</span>
             </div>
           </div>
-
         </div>
       </section>
 
