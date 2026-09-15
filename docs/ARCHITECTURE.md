@@ -232,6 +232,12 @@
 
 ---
 
+### 🗂️ 바이럴 및 소셜 공유 시스템
+- **동적 OG 이미지 생성 (`/api/og/member`):** Next.js `ImageResponse`를 사용해 의원의 정당 테마 컬러, 종합 점수, 순위, 3대 성적표를 1200x630 카드 이미지로 서버리스 엣지에서 실시간 렌더링.
+- **범용 공유 모달 (`ShareModal.tsx`):** Web Share API (카카오톡/인스타/트위터) 및 클립보드 복사 폴백 지원.
+
+---
+
 ## 6. 변경 이력 (Changelog)
 * **2026-09-14:** 생활 입법 Before & After(`LifeChangesWidget`) 및 DB 수집 파이프라인 추가.
 * **2026-09-15 (Phase 1 UI/UX 개선):** 메인 홈 화면(`src/app/page.tsx`) 4대 테마 Zone 구획화(Zone 1: 참여/동네, Zone 2: 생활/페르소나, Zone 3: 데이터랩/랭킹, Zone 4: 시민광장) 및 제브라 섹셔닝(배경 톤 교차), 통합 섹션 헤더 디자인 적용 완료.
@@ -297,3 +303,6 @@
   - Vercel 런타임 리전을 미국(`iad1`)에서 서울(`icn1`)로 이전하여 물리적 네트워크 지연 해소.
   - `db.ts`에 서버리스 전용 커넥션 다이어트(컨테이너당 2개 제한 및 30초 타임아웃) 적용.
   - 홈 화면 `page.tsx`를 `force-dynamic`에서 `revalidate = 3600` ISR로 전환하여 DB 부하 방어.
+* **2026-09-15 (Phase 3-1 동적 OG 이미지 생성 및 소셜 공유 모달 탑재):**
+  - Edge Runtime 기반의 동적 OG 이미지 엔드포인트 `/api/og/member` 신설.
+  - 카카오톡 및 SNS 링크 공유 최적화 및 `ShareModal` 연동 준비 완료.
