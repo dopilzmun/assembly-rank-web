@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navigation from "@/components/Navigation";
-import MobileBottomNav from "@/components/MobileBottomNav";
 
 export const metadata: Metadata = {
   title: "국회의원 입법활동 지표 모니터 | 제22대 국회",
@@ -16,17 +15,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className="bg-slate-50 text-slate-900 min-h-screen flex flex-col antialiased">
-        {/* 상단 글로벌 헤더 */}
+      <body className="bg-slate-50 text-slate-900 min-h-screen flex flex-col antialiased dark:bg-slate-950 dark:text-slate-100">
+        {/* 상/하단 동적 통합 내비게이션 */}
         <Navigation />
 
-        {/* 메인 콘텐츠 (모바일에서는 하단 탭바 높이만큼 pb-16 확보, 데스크톱은 sm:pb-0) */}
-        <div className="flex-1 pb-16 sm:pb-0">
+        {/* 메인 콘텐츠 영역 */}
+        <div className="flex-1">
           {children}
         </div>
-
-        {/* 모바일 전용 하단 플로팅 탭바 (sm:hidden) */}
-        <MobileBottomNav />
       </body>
     </html>
   );
