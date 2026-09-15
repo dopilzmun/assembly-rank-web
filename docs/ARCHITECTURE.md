@@ -114,8 +114,15 @@
 
 ### 3.2 표준 통계 뷰 (Standardized Database Views)
 * `vw_bill_efct_rnkg_01`: 국회의원 종합 입법 효율성 및 6대 역량 100점 만점 평가 랭킹 뷰
-* `vw_assemb_lvlhd_ctgr_stts_01` **[신규]**: 의원별·페르소나별 가결 성과 통계 뷰
-  * **산출 공식:** 순수 가결(원안/수정가결) $\times$ 1.0 + 대안반영(병합 가결) $\times$ 0.7 가중 점수(`aprv_scor`) 기준 페르소나별 순위 매김
+* `vw_assemb_lvlhd_ctgr_stts_01`: 의원별·라이프스타일 페르소나별 가결 성과 통계 뷰
+  * **물리 컬럼:** `assemb_id`, `age`, `assemb_nm`, `pltprt_nm`, `ctgr_se`, `aprv_cnt`, `pure_aprv_cnt`, `alt_aprv_cnt`, `aprv_scor`, `symp_cnt`, `rnkg`
+  * **표준 6대 카테고리 코드 (`ctgr_se`):**
+    * `WORK`: 직장·노동
+    * `HOUSE`: 주거·부동산
+    * `CARE`: 육아·돌봄
+    * `FIN`: 금융·경제
+    * `TRAF`: 교통·이동
+    * `LIFE`: 생활·안전
 
 ---
 
@@ -161,3 +168,4 @@
   - `LifeChangesWidget`: `/api/district/life-changes`에 키워드 분리 매칭(`LIKE`) 및 6대 분야별 대표 실질가결 법안 자동 시딩(Auto-seeding) 로직 적용하여 카테고리별 필터 정상화.
   - `AssembDetailDrawer`: `/api/assemblies/[assembId]/bills` 쿼리에서 MySQL2의 `LIMIT ?` 바인딩 파싱 에러를 정수 직접 주입(`LIMIT ${safeLimit}`)으로 원천 차단하여 최근 발의 법안 목록이 정상 출력되도록 수정.
   - `PersonaLawmakerWidget`: ID 매칭 실패 시 성명/정당 매칭 폴백 적용하여 드로어 데이터 공백 현상 해소.
+* **2026-09-15 (페르소나 뷰 스키마 일치화):** `vw_assemb_lvlhd_ctgr_stts_01` 실제 확인된 물리 컬럼과 6대 표준 코드(`CARE, FIN, HOUSE, LIFE, TRAF, WORK`)를 `/api/district/persona` 및 `PersonaLawmakerWidget`에 1:1 완벽 동기화 완료.

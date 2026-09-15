@@ -5,10 +5,10 @@ import { BillRankingRow } from "@/types/ranking";
 import AssembDetailDrawer from "@/components/AssembDetailDrawer";
 import {
   Briefcase,
-  GraduationCap,
-  Baby,
   Home,
-  Store,
+  Baby,
+  Coins,
+  Car,
   HeartHandshake,
   ChevronRight,
 } from "lucide-react";
@@ -23,6 +23,7 @@ interface PersonaLawmakerItem {
   pltprt_nm: string;
   rgn_nm: string | null;
   ctgr_se: string;
+  aprv_cnt: number;
   pure_aprv_cnt: number;
   alt_aprv_cnt: number;
   aprv_scor: number;
@@ -30,13 +31,14 @@ interface PersonaLawmakerItem {
   repr_bill_nm: string | null;
 }
 
+// 6대 표준 카테고리 정의 (CARE, FIN, HOUSE, LIFE, TRAF, WORK)
 const PERSONAS = [
-  { key: "직장인", label: "직장인·노동", icon: Briefcase, desc: "퇴근, 세금, 근로 환경" },
-  { key: "청년", label: "청년·취업", icon: GraduationCap, desc: "취업, 청년 지원, 도약" },
-  { key: "육아", label: "육아·교육", icon: Baby, desc: "보육, 돌봄, 안전한 학교" },
-  { key: "주거", label: "주거·부동산", icon: Home, desc: "전월세, 주거 안정, 정주" },
-  { key: "소상공인", label: "소상공인·자영업", icon: Store, desc: "골목상권, 자영업 보호" },
-  { key: "시니어", label: "시니어·복지", icon: HeartHandshake, desc: "연금, 의료, 건강한 노후" },
+  { key: "WORK", label: "직장·노동", icon: Briefcase, desc: "퇴근, 근로, 일자리" },
+  { key: "HOUSE", label: "주거·부동산", icon: Home, desc: "전월세, 청약, 주택" },
+  { key: "CARE", label: "육아·돌봄", icon: Baby, desc: "보육, 돌봄, 교육" },
+  { key: "FIN", label: "금융·경제", icon: Coins, desc: "소상공인, 세금, 금융" },
+  { key: "TRAF", label: "교통·이동", icon: Car, desc: "대중교통, 철도, 도로" },
+  { key: "LIFE", label: "생활·안전", icon: HeartHandshake, desc: "소비자, 먹거리, 안전" },
 ];
 
 const PARTY_COLORS: Record<string, string> = {
@@ -51,21 +53,21 @@ const PARTY_COLORS: Record<string, string> = {
 };
 
 export default function PersonaLawmakerWidget({ allMembers = [] }: PersonaLawmakerWidgetProps) {
-  const [selectedPersona, setSelectedPersona] = useState("직장인");
+  const [selectedPersona, setSelectedPersona] = useState("WORK");
   const [lawmakers, setLawmakers] = useState<PersonaLawmakerItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDrawerMember, setSelectedDrawerMember] = useState<BillRankingRow | null>(null);
 
   useEffect(() => {
     setIsLoading(true);
-    fetch(`/api/district/persona?ctgr_se=${encodeURIComponent(selectedPersona)}`)
+    fetch(`/api/district/persona?ctgr_se=${selectedPersona}`)
       .then((res) => (res.ok ? res.json() : { lawmakers: [] }))
       .then((data) => setLawmakers(data.lawmakers || []))
       .catch((err) => console.error("페르소나 의원 로드 실패:", err))
       .finally(() => setIsLoading(false));
   }, [selectedPersona]);
 
-  // 의원 카드 클릭 시 full data 정밀 매칭 (1단계: ID, 2단계: 성명+정당)
+  // 의원 카드 클릭 시 full data 매칭 후 드로어 팝업
   const handleOpenDrawer = (item: PersonaLawmakerItem) => {
     const cleanId = String(item.assemb_id).trim();
 
@@ -82,27 +84,26 @@ export default function PersonaLawmakerWidget({ allMembers = [] }: PersonaLawmak
     if (fullMember) {
       setSelectedDrawerMember(fullMember);
     } else {
-      // 최악의 경우에도 정상 드로어 렌더링을 보장하는 구조
       setSelectedDrawerMember({
         assemb_id: item.assemb_id,
         age: 22,
         assemb_nm: item.assemb_nm,
         pltprt_nm: item.pltprt_nm,
-        rgn_nm: item.rgn_nm || "지역구",
+        rgn_nm: item.rgn_nm || "비례대표",
         cmit_nm: null,
         term_start_dd: "2024-05-30",
         is_deferred: 0,
         monthly_pace: 1.5,
-        ttl_motn_cnt: item.pure_aprv_cnt + item.alt_aprv_cnt + 5,
+        ttl_motn_cnt: item.aprv_cnt + 5,
         pure_aprv_cnt: item.pure_aprv_cnt,
         alt_aprv_cnt: item.alt_aprv_cnt,
-        aprv_cnt: item.pure_aprv_cnt + item.alt_aprv_cnt,
+        aprv_cnt: item.aprv_cnt,
         dss_cnt: 0,
         aprv_rate: 25.0,
         cmt_present_cnt: 8,
         cmt_present_rate: 65.0,
         avg_cmt_days: 90,
-        own_cmit_motn_cnt: item.pure_aprv_cnt + item.alt_aprv_cnt,
+        own_cmit_motn_cnt: item.aprv_cnt,
         own_cmit_motn_rate: 80.0,
         score: item.aprv_scor,
         rnkg: item.rnkg,
@@ -123,12 +124,12 @@ export default function PersonaLawmakerWidget({ allMembers = [] }: PersonaLawmak
             </span>
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
-            단순 법안 발의가 아닌, 해당 분야에서 실제 본회의 통과(원안 1.0 + 대안 0.7)를 이끌어낸 실적 상위 의원입니다.
+            단순 발의가 아닌, 해당 분야에서 실제 본회의 통과(원안 1.0 + 대안 0.7)를 이끌어낸 실적 상위 의원입니다.
           </p>
         </div>
       </div>
 
-      {/* 2. 6대 페르소나 선택 탭 */}
+      {/* 2. 6대 표준 페르소나 선택 탭 */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
         {PERSONAS.map((p) => {
           const Icon = p.icon;
@@ -149,7 +150,7 @@ export default function PersonaLawmakerWidget({ allMembers = [] }: PersonaLawmak
                   <Icon className="w-3.5 h-3.5" />
                 </span>
                 <span className={`text-[10px] font-bold ${isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}`}>
-                  대변
+                  {p.key}
                 </span>
               </div>
               <div>
@@ -172,7 +173,7 @@ export default function PersonaLawmakerWidget({ allMembers = [] }: PersonaLawmak
         </div>
       ) : lawmakers.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-          {lawmakers.map((item, idx) => (
+          {lawmakers.map((item) => (
             <button
               key={item.assemb_id}
               onClick={() => handleOpenDrawer(item)}
@@ -182,7 +183,7 @@ export default function PersonaLawmakerWidget({ allMembers = [] }: PersonaLawmak
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-white font-mono text-[11px] font-black dark:bg-slate-100 dark:text-slate-900">
-                      {idx + 1}
+                      {item.rnkg}
                     </span>
                     <strong className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
                       {item.assemb_nm}
@@ -202,7 +203,7 @@ export default function PersonaLawmakerWidget({ allMembers = [] }: PersonaLawmak
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-medium">
                   <span>{item.rgn_nm || "비례대표"}</span>
                   <span className="font-mono text-[11px]">
-                    원안 {item.pure_aprv_cnt} · 대안 {item.alt_aprv_cnt}건
+                    원{item.pure_aprv_cnt} · 대{item.alt_aprv_cnt} (총 {item.aprv_cnt}건)
                   </span>
                 </div>
 
