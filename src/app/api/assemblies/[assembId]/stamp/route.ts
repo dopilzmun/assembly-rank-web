@@ -1,60 +1,60 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
-import { RowDataPacket, ResultSetHeader } from "mysql2";
+import crypto from "crypto";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ assembId: string }> }
-) {
-  try {
-    const { assembId } = await params;
-    const [rows] = await pool.query<RowDataPacket[]>(
-      `SELECT stamp_type, stamp_cnt FROM assemb_emotion_stamp WHERE assemb_id = ?;`,
-      [assembId]
-    );
-
-    const stamps: Record<string, number> = {
-      praise: 0,
-      cheer: 0,
-      watch: 0,
-      encourage: 0,
-    };
-
-    rows.forEach((r) => {
-      stamps[r.stamp_type] = Number(r.stamp_cnt) || 0;
-    });
-
-    return NextResponse.json({ stamps });
-  } catch (error) {
-    console.error("Failed to fetch stamps:", error);
-    return NextResponse.json({ stamps: {} }, { status: 500 });
-  }
-}
+export const dynamic = "force-dynamic";
 
 export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ assembId: string }> }
+  req: NextRequest,
+  props: { params: Promise<{ assembId: string }> | { assembId: string } }
 ) {
   try {
-    const { assembId } = await params;
-    const body = await request.json();
-    const stamp_type = body.stamp_type;
+    const resolvedParams = await Promise.resolve(props.params);
+    const assembId = resolvedParams.assembId;
+    const body = await req.json();
+    const { stamp_type } = body;
 
-    const allowed = ["praise", "cheer", "watch", "encourage"];
-    if (!allowed.includes(stamp_type)) {
-      return NextResponse.json({ message: "유효하지 않은 스탬프입니다." }, { status: 400 });
+    if (!assembId || !stamp_type) {
+      return NextResponse.json(
+        { error: "assembId and stamp_type are required" },
+        { status: 400 }
+      );
     }
 
-    await pool.query<ResultSetHeader>(
-      `INSERT INTO assemb_emotion_stamp (assemb_id, stamp_type, stamp_cnt)
-       VALUES (?, ?, 1)
-       ON DUPLICATE KEY UPDATE stamp_cnt = stamp_cnt + 1;`,
-      [assembId, stamp_type]
+    const validTypes = ["praise", "cheer", "watch", "critic"];
+    if (!validTypes.includes(stamp_type)) {
+      return NextResponse.json({ error: "Invalid stamp_type" }, { status: 400 });
+    }
+
+    // IP 해시 생성 (익명성 및 중복 로깅 관리)
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0] ||
+      req.headers.get("x-real-ip") ||
+      "unknown";
+    const ipHash = crypto.createHash("sha256").update(ip).digest("hex");
+
+    // 1. 테이블 존재 보장 (Auto DDL)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS assemb_stamp_log (
+        stamp_seq INT AUTO_INCREMENT PRIMARY KEY,
+        assemb_id VARCHAR(50) NOT NULL,
+        stamp_type VARCHAR(20) NOT NULL,
+        ip_hsh_val VARCHAR(64) DEFAULT NULL,
+        rgstdt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_assemb_stamp_lookup (assemb_id, stamp_type, rgstdt)
+      );
+    `);
+
+    // 2. 스탬프 기록 등록
+    await pool.query(
+      `INSERT INTO assemb_stamp_log (assemb_id, stamp_type, ip_hsh_val, rgstdt)
+       VALUES (?, ?, ?, NOW())`,
+      [assembId, stamp_type, ipHash]
     );
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, message: "Stamp registered successfully" });
   } catch (error) {
-    console.error("Failed to add stamp:", error);
-    return NextResponse.json({ message: "스탬프 저장 실패" }, { status: 500 });
+    console.error("Failed to register stamp:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

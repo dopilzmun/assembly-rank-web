@@ -2,50 +2,59 @@ import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { RowDataPacket } from "mysql2";
 
-const CURRENT_AGE = 22;
+export const dynamic = "force-dynamic";
+
+interface StampRankRow extends RowDataPacket {
+  assemb_id: string;
+  cnt: number;
+}
 
 export async function GET() {
   try {
-    // 1. 최근 7일간 가장 많은 칭찬·응원을 받은 의원 TOP 3
-    const [praiseRows] = await pool.query<RowDataPacket[]>(
-      `SELECT 
-        s.assemb_id,
-        m.assemb_nm,
-        m.pltprt_nm,
-        COUNT(*) AS stamp_cnt
-      FROM member_emotion_stamp s
-      JOIN assemb_mastr m ON s.assemb_id = m.assemb_id AND m.age = ?
-      WHERE s.stamp_type IN ('praise', 'cheer')
-        AND s.created_at >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 7 DAY)
-      GROUP BY s.assemb_id, m.assemb_nm, m.pltprt_nm
-      ORDER BY stamp_cnt DESC
-      LIMIT 3;`,
-      [CURRENT_AGE]
+    // 1. 테이블 존재 보장 (Auto DDL)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS assemb_stamp_log (
+        stamp_seq INT AUTO_INCREMENT PRIMARY KEY,
+        assemb_id VARCHAR(50) NOT NULL,
+        stamp_type VARCHAR(20) NOT NULL,
+        ip_hsh_val VARCHAR(64) DEFAULT NULL,
+        rgstdt DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_assemb_stamp_lookup (assemb_id, stamp_type, rgstdt)
+      );
+    `);
+
+    // 2. 최근 7일간 긍정 스탬프(칭찬해요, 응원해요) TOP 3
+    const [positiveRows] = await pool.query<StampRankRow[]>(
+      `SELECT assemb_id, COUNT(*) as cnt
+       FROM assemb_stamp_log
+       WHERE stamp_type IN ('praise', 'cheer')
+         AND rgstdt >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+       GROUP BY assemb_id
+       ORDER BY cnt DESC
+       LIMIT 3;`
     );
 
-    // 2. 최근 7일간 가장 많은 감시·분발(경고)을 받은 의원 TOP 3
-    const [watchRows] = await pool.query<RowDataPacket[]>(
-      `SELECT 
-        s.assemb_id,
-        m.assemb_nm,
-        m.pltprt_nm,
-        COUNT(*) AS stamp_cnt
-      FROM member_emotion_stamp s
-      JOIN assemb_mastr m ON s.assemb_id = m.assemb_id AND m.age = ?
-      WHERE s.stamp_type IN ('watch', 'critic')
-        AND s.created_at >= DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 7 DAY)
-      GROUP BY s.assemb_id, m.assemb_nm, m.pltprt_nm
-      ORDER BY stamp_cnt DESC
-      LIMIT 3;`,
-      [CURRENT_AGE]
+    // 3. 최근 7일간 비판/주목 스탬프(지켜봐요, 분발해요) TOP 3
+    const [criticalRows] = await pool.query<StampRankRow[]>(
+      `SELECT assemb_id, COUNT(*) as cnt
+       FROM assemb_stamp_log
+       WHERE stamp_type IN ('watch', 'critic')
+         AND rgstdt >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+       GROUP BY assemb_id
+       ORDER BY cnt DESC
+       LIMIT 3;`
     );
 
     return NextResponse.json({
-      topPraised: praiseRows,
-      topWatched: watchRows,
+      success: true,
+      positive: positiveRows.map((r) => ({ assemb_id: r.assemb_id, count: Number(r.cnt) })),
+      critical: criticalRows.map((r) => ({ assemb_id: r.assemb_id, count: Number(r.cnt) })),
     });
   } catch (error) {
     console.error("Failed to fetch weekly stamp summary:", error);
-    return NextResponse.json({ topPraised: [], topWatched: [] }, { status: 500 });
+    return NextResponse.json(
+      { success: false, positive: [], critical: [] },
+      { status: 500 }
+    );
   }
 }

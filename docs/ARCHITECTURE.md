@@ -106,11 +106,11 @@
 ### 3.1 물리 테이블 (Physical Tables)
 * `assemb_mastr`: 대한민국 국회의원 기본 마스터 (의원ID, 성명, 정당, 지역구, 소관상임위 등)
 * `bill_tr`: 의안 트랜잭션 원장 (의안ID, 의안명, 대표발의의원ID `repve_assemb_id`, 발의일, 상정일, 처리상태 `process_stat`, 처리일자)
-* `bill_lvlhd_chng_mastr` **[신규]**: 생활 입법 Before & After 마스터 테이블
-  * 컬럼: `chng_seq`, `bill_id`, `age`, `chng_nm`, `ctgr_se`, `tgt_cnts`, `bfor_cnts`, `aftr_cnts`, `opertn_dd`, `opertn_se`, `symp_cnt`, `expyn`, `rgstdt`
-* `daily_bill_poll`: 일일 쟁점 법안 투표 마스터 (`poll_id`, `bill_id`, `poll_titl`, `smry_cnts`, `pro_cnt`, `con_cnt`, `poll_dd`, `expyn`)
-* `daily_bill_poll_log`: 투표 참여 중복 방지 이력 (`vote_seq`, `poll_id`, `ip_hsh_val`, `vote_se`, `rgstdt`)
-* `district_feedback`: 지역구 의원실 한마디 보드 (`fdbc_seq`, `assemb_id`, `ncknm`, `fdbc_se`, `fdbc_cnts`, `atyn`, `rgstdt`)
+* `bill_lvlhd_chng_mastr`: 생활 입법 Before & After 마스터 테이블
+* `assemb_stamp_log` **[신규/정규화]**: 시민 감정 스탬프 원장 (`stamp_seq`, `assemb_id`, `stamp_type`, `ip_hsh_val`, `rgstdt`)
+* `daily_bill_poll`: 일일 쟁점 법안 투표 마스터
+* `daily_bill_poll_log`: 투표 참여 중복 방지 이력
+* `district_feedback`: 지역구 의원실 한마디 보드
 
 ### 3.2 표준 통계 뷰 (Standardized Database Views)
 * `vw_bill_efct_rnkg_01`: 국회의원 종합 입법 효율성 및 6대 역량 100점 만점 평가 랭킹 뷰
@@ -144,3 +144,5 @@
 * **2026-09-15 (Phase 1 UI/UX 개선):** 메인 홈 화면(`src/app/page.tsx`) 4대 테마 Zone 구획화(참여, 생활입법, 데이터랩, 시민광장) 및 제브라 섹셔닝 적용.
 * **2026-09-15 (홈 UX 순서 재배치 - Option A 적용):** 사용자 몰입도 극대화를 위해 `CitizenReactionWidget`을 상단(Zone 2)으로 전진 배치. [참여/동네 → 시민여론/화제의 의원 → 생활입법/페르소나 → 데이터랩/팩트체크]의 4-Zone 스토리텔링 흐름 완성.
 * **2026-09-15 (Phase 1 UI/UX 개선):** 메인 홈 화면 4대 테마 Zone 구획화 및 제브라 섹셔닝 적용.
+* **2026-09-15 (시민 스탬프 데이터 파이프라인 정상화):** `assemb_stamp_log` 물리 테이블 DDL 보장, Next.js 16 비동기 `params` 처리(`/api/assemblies/[assembId]/stamp`), 주간 요약 API(`/api/stamps/weekly-summary`)와 위젯(`CitizenReactionWidget`) 간 응답 데이터 키 정합성 복구 완료.
+* **2026-09-15 (홈 UX 순서 재배치 - Option A 적용):** `CitizenReactionWidget`을 Zone 2로 전진 배치.
