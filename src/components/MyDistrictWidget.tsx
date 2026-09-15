@@ -54,9 +54,7 @@ export default function MyDistrictWidget({ allMembers }: MyDistrictWidgetProps) 
   }, [allMembers]);
 
   const matchMember = (rgnName: string) => {
-    // 1. 정확 매칭
     let matched = allMembers.find((m) => m.rgn_nm === rgnName);
-    // 2. 부분 매칭
     if (!matched) {
       matched = allMembers.find(
         (m) => m.rgn_nm && (m.rgn_nm.includes(rgnName) || rgnName.includes(m.rgn_nm))
@@ -108,10 +106,10 @@ export default function MyDistrictWidget({ allMembers }: MyDistrictWidgetProps) 
             setDistrict(targetDistrict);
             localStorage.setItem("user_district", targetDistrict);
             matchMember(targetDistrict);
-            setIsDrawerOpen(false); // 인증 직후 자동 팝업 방지
+            setIsDrawerOpen(false);
           } else {
             alert(
-              "현재 위치의 지역구를 특정하지 못했습니다. [지역구 직접 선택] 버튼으로 거주 동네를 선택해 주세요."
+              "현재 위치의 지역구를 특정하지 못했습니다. [직접 선택] 버튼으로 거주 동네를 선택해 주세요."
             );
             setIsSearchModalOpen(true);
           }
@@ -123,7 +121,7 @@ export default function MyDistrictWidget({ allMembers }: MyDistrictWidgetProps) 
         }
       },
       () => {
-        alert("위치 권한이 차단되어 있습니다. [지역구 직접 선택]으로 설정해 주세요.");
+        alert("위치 권한이 차단되어 있습니다. [직접 선택]으로 설정해 주세요.");
         setIsVerifying(false);
         setIsSearchModalOpen(true);
       },
@@ -131,19 +129,17 @@ export default function MyDistrictWidget({ allMembers }: MyDistrictWidgetProps) 
     );
   };
 
-  // 수동 지역구 선택
   const handleSelectMember = (selected: BillRankingRow) => {
     if (selected.rgn_nm) {
       setDistrict(selected.rgn_nm);
       localStorage.setItem("user_district", selected.rgn_nm);
       setMember(selected);
       fetchLatestFeedback(selected.assemb_id);
-      setIsDrawerOpen(false); // 선택 직후 자동 팝업 방지
+      setIsDrawerOpen(false);
     }
     setIsSearchModalOpen(false);
   };
 
-  // 검색어 필터링
   const filteredMembers = allMembers
     .filter((m) => m.rgn_nm && m.rgn_nm !== "비례대표")
     .filter(
@@ -154,39 +150,42 @@ export default function MyDistrictWidget({ allMembers }: MyDistrictWidgetProps) 
     .slice(0, 8);
 
   return (
-    <div className="h-full flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 transition-all">
+    <div className="h-full flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 transition-all">
       
-      {/* 1. 헤더 영역 */}
+      {/* 1. 헤더 영역 (모바일 줄바꿈 방지 반응형 최적화) */}
       <div>
-        <div className="flex items-center justify-between pb-3">
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300">
-            <MapPin className="h-3.5 w-3.5" />
-            <span>우리 동네 국회의원 & 주민 한마디</span>
+        <div className="flex items-center justify-between pb-3 gap-2">
+          {/* 좌측 뱃지 (모바일: 우리 동네 의원 / 데스크톱: 우리 동네 국회의원 & 주민 한마디) */}
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300 shrink-0 whitespace-nowrap">
+            <MapPin className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden sm:inline">우리 동네 국회의원 & 주민 한마디</span>
+            <span className="sm:hidden">우리 동네 의원</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* 우측 액션 버튼 그룹 (shrink-0 & whitespace-nowrap 적용) */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 whitespace-nowrap text-xs">
             <button
               onClick={() => setIsSearchModalOpen(true)}
-              className="text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer"
+              className="font-bold text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer"
             >
               직접 선택
             </button>
-            <span className="text-slate-300 text-xs">|</span>
+            <span className="text-slate-200 dark:text-slate-700">|</span>
             <button
               onClick={handleVerifyLocation}
               disabled={isVerifying}
-              className="group inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-emerald-600 transition-colors cursor-pointer"
+              className="group inline-flex items-center gap-1 font-bold text-slate-500 hover:text-emerald-600 transition-colors cursor-pointer"
             >
-              <Navigation className={`h-3 w-3 ${isVerifying ? "animate-spin text-emerald-600" : ""}`} />
-              <span>{isVerifying ? "인증 중..." : district ? "GPS 재인증" : "1초 GPS 인증"}</span>
+              <Navigation className={`h-3 w-3 shrink-0 ${isVerifying ? "animate-spin text-emerald-600" : ""}`} />
+              <span>{isVerifying ? "인증 중" : district ? "GPS 재인증" : "GPS 인증"}</span>
             </button>
           </div>
         </div>
 
-        {/* 2. 본문 내용 (위젯 카드 내 요약 표출) */}
+        {/* 2. 본문 내용 */}
         {member ? (
           <div className="mt-2 space-y-3">
-            <div className="flex items-baseline gap-2">
+            <div className="flex items-baseline gap-2 flex-wrap">
               <h3 className="text-lg sm:text-xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
                 {member.assemb_nm}
               </h3>
@@ -286,7 +285,6 @@ export default function MyDistrictWidget({ allMembers }: MyDistrictWidgetProps) 
               </button>
             </div>
 
-            {/* 검색창 */}
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
               <input
@@ -299,7 +297,6 @@ export default function MyDistrictWidget({ allMembers }: MyDistrictWidgetProps) 
               />
             </div>
 
-            {/* 검색 결과 리스트 */}
             <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
               {filteredMembers.length > 0 ? (
                 filteredMembers.map((m) => (
@@ -334,7 +331,7 @@ export default function MyDistrictWidget({ allMembers }: MyDistrictWidgetProps) 
         </div>
       )}
 
-      {/* 모달 연동: isDrawerOpen 상태에 따라 정확히 마운트/언마운트 */}
+      {/* 모달 연동: 의정활동 상세 드로어 */}
       <AssembDetailDrawer
         assemb={isDrawerOpen ? member : null}
         onClose={() => setIsDrawerOpen(false)}

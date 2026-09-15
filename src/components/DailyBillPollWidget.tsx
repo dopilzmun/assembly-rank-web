@@ -88,19 +88,21 @@ export default function DailyBillPollWidget() {
   const conPercent = 100 - proPercent;
 
   return (
-    <div className="h-full flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 transition-all">
+    <div className="h-full flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 transition-all">
       
-      {/* 1. 헤더 영역 */}
+      {/* 1. 헤더 영역 (모바일 줄바꿈 방지 반응형 최적화) */}
       <div>
-        <div className="flex items-center justify-between pb-3">
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 dark:bg-indigo-950/70 dark:text-indigo-300">
-            <Vote className="h-3.5 w-3.5" />
-            <span>오늘의 쟁점 법안 1초 투표</span>
+        <div className="flex items-center justify-between pb-3 gap-2">
+          {/* 모바일 텍스트 축약 & whitespace-nowrap */}
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 dark:bg-indigo-950/70 dark:text-indigo-300 shrink-0 whitespace-nowrap">
+            <Vote className="h-3.5 w-3.5 shrink-0" />
+            <span className="hidden sm:inline">오늘의 쟁점 법안 1초 투표</span>
+            <span className="sm:hidden">오늘의 쟁점 투표</span>
           </div>
 
           <Link
             href="/poll/archive"
-            className="group inline-flex items-center gap-0.5 text-xs font-bold text-slate-400 hover:text-indigo-600 transition-colors"
+            className="group inline-flex items-center gap-0.5 text-xs font-bold text-slate-400 hover:text-indigo-600 transition-colors shrink-0 whitespace-nowrap"
           >
             <span>투표 아카이브</span>
             <ChevronRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
