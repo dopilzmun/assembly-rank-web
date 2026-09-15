@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 interface AssembDetailDrawerProps {
-  assemb: BillRankingRow | { assemb_id: string; [key: string]: any } | null;
+  assemb: BillRankingRow | null;
   onClose: () => void;
   onOpenCompareWith?: (member: BillRankingRow) => void;
 }
@@ -48,7 +48,6 @@ export default function AssembDetailDrawer({
   onClose,
   onOpenCompareWith,
 }: AssembDetailDrawerProps) {
-  const [fullMember, setFullMember] = useState<BillRankingRow | null>(null);
   const [recentBills, setRecentBills] = useState<RecentBillItem[]>([]);
   const [isLoadingBills, setIsLoadingBills] = useState(false);
   const [, setStampCounts] = useState({
@@ -74,32 +73,15 @@ export default function AssembDetailDrawer({
     };
   }, [assemb, onClose]);
 
-  // 의원 선택 시 전체 정보 및 최근 법안 목록 조회 (페르소나/랭킹 진입 데이터 불일치 원천 차단)
+  // 의원 선택 시 최근 법안 목록 조회 (ARCHITECTURE.md 엔드포인트 규격 준수)
   useEffect(() => {
-    if (!assemb || !assemb.assemb_id) {
-      setFullMember(null);
+    if (!assemb) {
       setRecentBills([]);
       return;
     }
 
-    // 만약 전달받은 assemb 객체에 score 등 상세 지표가 누락되어 있다면 API로 온전한 데이터 조회
-    if ("score" in assemb && assemb.score !== undefined) {
-      setFullMember(assemb as BillRankingRow);
-    } else {
-      fetch(`/api/members/${assemb.assemb_id}`)
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (data && data.success && data.member) {
-            setFullMember(data.member as BillRankingRow);
-          } else {
-            setFullMember(assemb as BillRankingRow);
-          }
-        })
-        .catch(() => setFullMember(assemb as BillRankingRow));
-    }
-
     setIsLoadingBills(true);
-    fetch(`/api/bills?assemb_id=${assemb.assemb_id}&limit=5`)
+    fetch(`/api/assemblies/${assemb.assemb_id}/bills?limit=5`)
       .then((res) => (res.ok ? res.json() : { bills: [] }))
       .then((data) => setRecentBills(data.bills || []))
       .catch((err) => console.error("법안 로드 실패:", err))
@@ -110,35 +92,35 @@ export default function AssembDetailDrawer({
     setUserStamp(savedStamp);
   }, [assemb]);
 
-  if (!assemb || !fullMember) return null;
+  if (!assemb) return null;
 
-  const isDeferred = fullMember.is_deferred === 1;
-  const motnCnt = Number(fullMember.ttl_motn_cnt) || 0;
-  const aprvCnt = Number(fullMember.aprv_cnt) || 0;
-  const pureCnt = Number(fullMember.pure_aprv_cnt) || 0;
-  const altCnt = Number(fullMember.alt_aprv_cnt) || 0;
+  const isDeferred = assemb.is_deferred === 1;
+  const motnCnt = Number(assemb.ttl_motn_cnt) || 0;
+  const aprvCnt = Number(assemb.aprv_cnt) || 0;
+  const pureCnt = Number(assemb.pure_aprv_cnt) || 0;
+  const altCnt = Number(assemb.alt_aprv_cnt) || 0;
 
   // 육각 상태도 정규화 점수 환산
-  const normalizedPace = Math.min(100, Math.round((Number(fullMember.monthly_pace || 0) / 3.5) * 100));
-  const normalizedAprvCnt = Math.min(100, Math.round((Number(fullMember.aprv_cnt || 0) / 5) * 100));
-  const normalizedAprvRate = Math.min(100, Math.round(Number(fullMember.aprv_rate || 0) * 3));
-  const normalizedCmtRate = Math.min(100, Math.round(Number(fullMember.cmt_present_rate || 0)));
-  const avgDays = Number(fullMember.avg_cmt_days) || 120;
+  const normalizedPace = Math.min(100, Math.round((Number(assemb.monthly_pace || 0) / 3.5) * 100));
+  const normalizedAprvCnt = Math.min(100, Math.round((Number(assemb.aprv_cnt || 0) / 5) * 100));
+  const normalizedAprvRate = Math.min(100, Math.round(Number(assemb.aprv_rate || 0) * 3));
+  const normalizedCmtRate = Math.min(100, Math.round(Number(assemb.cmt_present_rate || 0)));
+  const avgDays = Number(assemb.avg_cmt_days) || 120;
   const normalizedSpeed = Math.min(100, Math.max(15, Math.round(100 - (avgDays / 180) * 80)));
-  const normalizedExpertise = Math.min(100, Math.round(Number(fullMember.own_cmit_motn_rate || 0)));
+  const normalizedExpertise = Math.min(100, Math.round(Number(assemb.own_cmit_motn_rate || 0)));
 
   // 감정 스탬프 누르기
   const handleStamp = async (type: "praise" | "cheer" | "watch" | "critic") => {
     if (userStamp) return;
     setUserStamp(type);
-    localStorage.setItem(`stamp_${fullMember.assemb_id}`, type);
+    localStorage.setItem(`stamp_${assemb.assemb_id}`, type);
     setStampCounts((prev) => ({ ...prev, [type]: prev[type] + 1 }));
 
     try {
-      await fetch("/api/stamps", {
+      await fetch(`/api/assemblies/${assemb.assemb_id}/stamp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assemb_id: fullMember.assemb_id, stamp_type: type }),
+        body: JSON.stringify({ stamp_type: type }),
       });
     } catch (err) {
       console.error("스탬프 등록 실패:", err);
@@ -182,14 +164,14 @@ export default function AssembDetailDrawer({
               <div className="space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-2xl font-black text-slate-900 tracking-tight dark:text-slate-100">
-                    {fullMember.assemb_nm}
+                    {assemb.assemb_nm}
                   </h2>
                   <span
                     className={`px-2.5 py-0.5 rounded-md text-xs font-bold border ${
-                      PARTY_COLORS[fullMember.pltprt_nm] || "bg-gray-50 text-gray-700 border-gray-200"
+                      PARTY_COLORS[assemb.pltprt_nm] || "bg-gray-50 text-gray-700 border-gray-200"
                     }`}
                   >
-                    {fullMember.pltprt_nm}
+                    {assemb.pltprt_nm}
                   </span>
                   {isDeferred && (
                     <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300">
@@ -198,7 +180,7 @@ export default function AssembDetailDrawer({
                   )}
                 </div>
                 <p className="text-xs sm:text-sm text-slate-500 font-medium dark:text-slate-400">
-                  {fullMember.rgn_nm || "비례대표"} · {fullMember.cmit_nm || "상임위 미배정"}
+                  {assemb.rgn_nm || "비례대표"} · {assemb.cmit_nm || "상임위 미배정"}
                 </p>
               </div>
 
@@ -208,12 +190,12 @@ export default function AssembDetailDrawer({
                   종합 평가
                 </span>
                 <strong className="text-xl sm:text-2xl font-black font-mono text-indigo-600 block leading-none dark:text-indigo-400">
-                  {isDeferred || fullMember.score === null
+                  {isDeferred || assemb.score === null
                     ? "유예"
-                    : `${Number(fullMember.score).toFixed(1)}점`}
+                    : `${Number(assemb.score).toFixed(1)}점`}
                 </strong>
                 <span className="text-xs font-mono font-bold text-slate-500 block mt-1 dark:text-slate-400">
-                  {fullMember.rnkg ? `전체 ${fullMember.rnkg}위` : "-"}
+                  {assemb.rnkg ? `전체 ${assemb.rnkg}위` : "-"}
                 </span>
               </div>
             </div>
@@ -221,7 +203,7 @@ export default function AssembDetailDrawer({
             {/* 1:1 맞비교 대결 진입 버튼 */}
             {onOpenCompareWith && (
               <button
-                onClick={() => onOpenCompareWith(fullMember)}
+                onClick={() => onOpenCompareWith(assemb)}
                 className="w-full py-2.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Swords className="w-4 h-4 text-amber-300" />
@@ -230,7 +212,7 @@ export default function AssembDetailDrawer({
             )}
           </div>
 
-          {/* B. 육각 상태도 시각화 */}
+          {/* B. 육각 상태도 시각화 (최상단) */}
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900 flex flex-col items-center">
             <div className="flex items-center gap-1.5 self-start pb-2">
               <Sparkles className="h-4 w-4 text-indigo-600" />
@@ -267,17 +249,17 @@ export default function AssembDetailDrawer({
                   {motnCnt}건
                 </strong>
                 <span className="text-xs text-slate-400 font-mono block">
-                  월 {Number(fullMember.monthly_pace || 0).toFixed(1)}건
+                  월 {Number(assemb.monthly_pace || 0).toFixed(1)}건
                 </span>
               </div>
 
               <div className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-xs space-y-1 dark:bg-slate-900 dark:border-slate-800">
                 <span className="text-xs text-indigo-600 font-medium block">상임위 심사착수</span>
                 <strong className="text-base sm:text-lg font-black font-mono text-indigo-700 block dark:text-indigo-400">
-                  {Number(fullMember.cmt_present_rate) || 0}%
+                  {Number(assemb.cmt_present_rate) || 0}%
                 </strong>
                 <span className="text-xs text-slate-400 font-mono block">
-                  총 {Number(fullMember.cmt_present_cnt) || 0}건
+                  총 {Number(assemb.cmt_present_cnt) || 0}건
                 </span>
               </div>
 
@@ -294,7 +276,7 @@ export default function AssembDetailDrawer({
               <div className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-xs space-y-1 dark:bg-slate-900 dark:border-slate-800">
                 <span className="text-xs text-slate-500 font-medium block">실질가결률</span>
                 <strong className="text-base sm:text-lg font-black font-mono text-slate-800 block dark:text-slate-200">
-                  {Number(fullMember.aprv_rate) || 0}%
+                  {Number(assemb.aprv_rate) || 0}%
                 </strong>
                 <span className="text-xs text-slate-400 block font-mono">가결/발의</span>
               </div>
@@ -302,17 +284,17 @@ export default function AssembDetailDrawer({
               <div className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-xs space-y-1 dark:bg-slate-900 dark:border-slate-800">
                 <span className="text-xs text-slate-500 font-medium block">소속위 집중도</span>
                 <strong className="text-base sm:text-lg font-black font-mono text-blue-700 block dark:text-blue-400">
-                  {Number(fullMember.own_cmit_motn_rate) || 0}%
+                  {Number(assemb.own_cmit_motn_rate) || 0}%
                 </strong>
                 <span className="text-xs text-slate-400 font-mono block">
-                  총 {Number(fullMember.own_cmit_motn_cnt) || 0}건
+                  총 {Number(assemb.own_cmit_motn_cnt) || 0}건
                 </span>
               </div>
 
               <div className="p-3.5 bg-white rounded-xl border border-slate-200 shadow-xs space-y-1 dark:bg-slate-900 dark:border-slate-800">
                 <span className="text-xs text-slate-500 font-medium block">상정 소요일</span>
                 <strong className="text-base sm:text-lg font-black font-mono text-slate-800 block dark:text-slate-200">
-                  {Number(fullMember.avg_cmt_days) > 0 ? `${Number(fullMember.avg_cmt_days)}일` : "-"}
+                  {Number(assemb.avg_cmt_days) > 0 ? `${Number(assemb.avg_cmt_days)}일` : "-"}
                 </strong>
                 <span className="text-xs text-slate-400 block font-mono">발의 후 상정까지</span>
               </div>
@@ -388,7 +370,7 @@ export default function AssembDetailDrawer({
             </div>
           </div>
 
-          {/* E. 시민 감정 스탬프 */}
+          {/* E. 시민 감정 스탬프 (칭찬, 응원, 감시, 분발) */}
           <div className="bg-slate-50/90 rounded-2xl p-4 border border-slate-200/80 space-y-3 dark:bg-slate-800/40 dark:border-slate-800">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
@@ -454,9 +436,9 @@ export default function AssembDetailDrawer({
 
           {/* F. 우리 동네 의원실 한마디 */}
           <DistrictFeedbackSection
-            assembId={fullMember.assemb_id}
-            assembNm={fullMember.assemb_nm}
-            rgnNm={fullMember.rgn_nm}
+            assembId={assemb.assemb_id}
+            assembNm={assemb.assemb_nm}
+            rgnNm={assemb.rgn_nm}
           />
 
         </div>
