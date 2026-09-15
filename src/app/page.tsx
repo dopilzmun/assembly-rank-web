@@ -1,420 +1,430 @@
-import { Metadata } from "next";
 import Link from "next/link";
 import pool from "@/lib/db";
 import { RowDataPacket } from "mysql2";
 import HomeHeroSearch from "@/components/HomeHeroSearch";
 import DailyBillPollWidget from "@/components/DailyBillPollWidget";
 import MyDistrictWidget from "@/components/MyDistrictWidget";
-import CitizenReactionWidget from "@/components/CitizenReactionWidget";
 import LifeChangesWidget from "@/components/LifeChangesWidget";
 import PersonaLawmakerWidget from "@/components/PersonaLawmakerWidget";
-import { BillRankingRow } from "@/types/ranking";
+import CitizenReactionWidget from "@/components/CitizenReactionWidget";
 import {
   Trophy,
-  Layers,
-  CheckCircle2,
-  Sparkles,
-  ChevronRight,
-  ArrowRight,
   Award,
+  Clock,
+  CheckCircle2,
+  FileText,
+  ChevronRight,
+  TrendingUp,
+  Vote,
+  Sparkles,
+  Users,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
 
-export const revalidate = 86400;
-const CURRENT_AGE = 22;
+export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: `국회 입법활동 모니터 | 제${CURRENT_AGE}대 국회 브리핑`,
-  description: `열린국회정보 Open API 기반 제${CURRENT_AGE}대 국회의원 법안 발의·상정·실질가결 지표 및 6대 역량 분석 플랫폼`,
-};
-
-interface HomeBriefingData {
-  macro: {
-    total_assemb_cnt: number;
-    total_motn_cnt: number;
-    total_aprv_cnt: number;
-    overall_aprv_rate: number;
-    overall_cmt_present_rate: number;
-  };
-  topScorer: {
-    assemb_id: string;
-    assemb_nm: string;
-    pltprt_nm: string;
-    score: number;
-    rnkg: number;
-    aprv_cnt: number;
-    ttl_motn_cnt: number;
-  } | null;
-  topAprvMember: {
-    assemb_id: string;
-    assemb_nm: string;
-    pltprt_nm: string;
-    aprv_cnt: number;
-  } | null;
-  recentPassedBills: {
-    bill_id: string;
-    bill_nm: string;
-    assemb_nm: string;
-    pltprt_nm: string;
-    process_dd: string;
-    process_stat: string;
-  }[];
-  bottleneckSummary: {
-    fastest: { name: string; days: number } | null;
-    slowest: { name: string; days: number } | null;
-  };
-  allMembers: BillRankingRow[];
+interface MacroStatsRow extends RowDataPacket {
+  total_members: number;
+  total_bills: number;
+  avg_cmt_present_rate: number;
+  avg_aprv_rate: number;
 }
 
-async function getHomeBriefingData(): Promise<HomeBriefingData> {
-  try {
-    const [macroRows] = await pool.query<RowDataPacket[]>(
-      `SELECT 
-        COUNT(DISTINCT repve_assemb_id) AS total_assemb_cnt,
-        COUNT(*) AS total_motn_cnt,
-        COUNT(CASE WHEN process_stat LIKE '%가결%' OR process_stat LIKE '%반영폐기%' THEN 1 END) AS total_aprv_cnt,
-        COUNT(CASE WHEN cmt_present_dd IS NOT NULL THEN 1 END) AS total_cmt_present_cnt
-      FROM bill_tr
-      WHERE age = ?;`,
-      [CURRENT_AGE]
-    );
-    const m = macroRows[0] || {};
-    const total_motn = Number(m.total_motn_cnt) || 0;
-    const total_aprv = Number(m.total_aprv_cnt) || 0;
-    const total_cmt = Number(m.total_cmt_present_cnt) || 0;
+interface TopMemberRow extends RowDataPacket {
+  assemb_id: string;
+  assemb_nm: string;
+  pltprt_nm: string;
+  rgn_nm: string | null;
+  score: number;
+  rnkg: number;
+  aprv_cnt: number;
+  ttl_motn_cnt: number;
+}
 
-    const [topScorerRows] = await pool.query<RowDataPacket[]>(
-      `SELECT assemb_id, assemb_nm, pltprt_nm, score, rnkg, aprv_cnt, ttl_motn_cnt
-       FROM vw_bill_efct_rnkg_01
-       WHERE age = ? AND is_deferred = 0 AND rnkg = 1
-       LIMIT 1;`,
-      [CURRENT_AGE]
-    );
+interface RecentPassedBillRow extends RowDataPacket {
+  bill_id: string;
+  bill_nm: string;
+  curr_cmit_nm: string | null;
+  process_stat: string | null;
+  process_dd: string | null;
+}
 
-    const [topAprvRows] = await pool.query<RowDataPacket[]>(
-      `SELECT assemb_id, assemb_nm, pltprt_nm, aprv_cnt
-       FROM vw_bill_efct_rnkg_01
-       WHERE age = ?
-       ORDER BY aprv_cnt DESC, ttl_motn_cnt ASC
-       LIMIT 1;`,
-      [CURRENT_AGE]
-    );
-
-    const [billRows] = await pool.query<RowDataPacket[]>(
-      `SELECT 
-        b.bill_id, b.bill_nm, m.assemb_nm, m.pltprt_nm,
-        DATE_FORMAT(b.process_dd, '%m-%d') as process_dd,
-        b.process_stat
-       FROM bill_tr b
-       JOIN assemb_mastr m ON b.repve_assemb_id = m.assemb_id AND b.age = m.age
-       WHERE b.age = ? AND (b.process_stat LIKE '%가결%' OR b.process_stat LIKE '%반영폐기%')
-       ORDER BY b.process_dd DESC
-       LIMIT 3;`,
-      [CURRENT_AGE]
-    );
-
-    const [cmitRows] = await pool.query<RowDataPacket[]>(
-      `SELECT 
-        curr_cmit_nm,
-        ROUND(AVG(DATEDIFF(cmt_present_dd, motn_dd)), 1) AS avg_days
-       FROM bill_tr
-       WHERE age = ? AND curr_cmit_nm IS NOT NULL AND cmt_present_dd IS NOT NULL
-       GROUP BY curr_cmit_nm
-       HAVING COUNT(*) >= 15
-       ORDER BY avg_days ASC;`,
-      [CURRENT_AGE]
-    );
-
-    const fastest = cmitRows[0] ? { name: cmitRows[0].curr_cmit_nm, days: Number(cmitRows[0].avg_days) } : null;
-    const slowest = cmitRows.length > 0 ? { name: cmitRows[cmitRows.length - 1].curr_cmit_nm, days: Number(cmitRows[cmitRows.length - 1].avg_days) } : null;
-
-    const [memberRows] = await pool.query<RowDataPacket[]>(
-      `SELECT 
-        assemb_id, age, assemb_nm, pltprt_nm, rgn_nm, cmit_nm,
-        DATE_FORMAT(term_start_dd, '%Y-%m-%d') AS term_start_dd,
-        is_deferred, monthly_pace, ttl_motn_cnt, pure_aprv_cnt, alt_aprv_cnt,
-        aprv_cnt, dss_cnt, aprv_rate, cmt_present_cnt, cmt_present_rate,
-        avg_cmt_days, own_cmit_motn_cnt, own_cmit_motn_rate, score, rnkg
-      FROM vw_bill_efct_rnkg_01
-      WHERE age = ?;`,
-      [CURRENT_AGE]
-    );
-
-    return {
-      macro: {
-        total_assemb_cnt: Number(m.total_assemb_cnt) || 0,
-        total_motn_cnt: total_motn,
-        total_aprv_cnt: total_aprv,
-        overall_aprv_rate: total_motn > 0 ? Math.round((total_aprv / total_motn) * 1000) / 10 : 0,
-        overall_cmt_present_rate: total_motn > 0 ? Math.round((total_cmt / total_motn) * 1000) / 10 : 0,
-      },
-      topScorer: (topScorerRows[0] as any) || null,
-      topAprvMember: (topAprvRows[0] as any) || null,
-      recentPassedBills: billRows.map((r) => ({
-        bill_id: r.bill_id,
-        bill_nm: r.bill_nm,
-        assemb_nm: r.assemb_nm,
-        pltprt_nm: r.pltprt_nm,
-        process_dd: r.process_dd,
-        process_stat: r.process_stat?.includes("반영폐기") ? "대안반영" : r.process_stat,
-      })),
-      bottleneckSummary: { fastest, slowest },
-      allMembers: memberRows as BillRankingRow[],
-    };
-  } catch (error) {
-    console.error("Failed to fetch home briefing data:", error);
-    return {
-      macro: { total_assemb_cnt: 0, total_motn_cnt: 0, total_aprv_cnt: 0, overall_aprv_rate: 0, overall_cmt_present_rate: 0 },
-      topScorer: null,
-      topAprvMember: null,
-      recentPassedBills: [],
-      bottleneckSummary: { fastest: null, slowest: null },
-      allMembers: [],
-    };
-  }
+interface CommitteeSpeedRow extends RowDataPacket {
+  curr_cmit_nm: string;
+  avg_days: number;
+  cnt: number;
 }
 
 export default async function HomePage() {
-  const data = await getHomeBriefingData();
+  let macro = {
+    total_members: 300,
+    total_bills: 0,
+    avg_cmt_present_rate: 0,
+    avg_aprv_rate: 0,
+  };
+  let topMember: TopMemberRow | null = null;
+  let recentPassedBills: RecentPassedBillRow[] = [];
+  let fastestCmit: CommitteeSpeedRow | null = null;
+  let slowestCmit: CommitteeSpeedRow | null = null;
+
+  try {
+    // 1. 거시 지표 집계
+    const [macroRows] = await pool.query<MacroStatsRow[]>(
+      `SELECT 
+        (SELECT COUNT(*) FROM assemb_mastr WHERE age = 22) AS total_members,
+        (SELECT COUNT(*) FROM bill_tr WHERE age = 22) AS total_bills,
+        COALESCE(ROUND(AVG(cmt_present_rate), 1), 0) AS avg_cmt_present_rate,
+        COALESCE(ROUND(AVG(aprv_rate), 1), 0) AS avg_aprv_rate
+       FROM vw_bill_efct_rnkg_01
+       WHERE age = 22;`
+    );
+    if (macroRows && macroRows.length > 0) {
+      macro = macroRows[0];
+    }
+
+    // 2. 종합 1위 의원
+    const [topMemberRows] = await pool.query<TopMemberRow[]>(
+      `SELECT assemb_id, assemb_nm, pltprt_nm, rgn_nm, score, rnkg, aprv_cnt, ttl_motn_cnt
+       FROM vw_bill_efct_rnkg_01
+       WHERE age = 22 AND is_deferred = 0
+       ORDER BY rnkg ASC
+       LIMIT 1;`
+    );
+    if (topMemberRows && topMemberRows.length > 0) {
+      topMember = topMemberRows[0];
+    }
+
+    // 3. 최근 본회의 가결 법안 3건
+    const [passedBillRows] = await pool.query<RecentPassedBillRow[]>(
+      `SELECT 
+        bill_id, bill_nm, curr_cmit_nm, process_stat, 
+        DATE_FORMAT(process_dd, '%Y-%m-%d') AS process_dd
+       FROM bill_tr
+       WHERE age = 22 AND (process_stat LIKE '%가결%' OR process_stat LIKE '%반영폐기%')
+       ORDER BY process_dd DESC, bill_id DESC
+       LIMIT 3;`
+    );
+    recentPassedBills = passedBillRows;
+
+    // 4. 상임위 심사 속도 (최속 vs 최장 병목)
+    const [cmitRows] = await pool.query<CommitteeSpeedRow[]>(
+      `SELECT curr_cmit_nm, ROUND(AVG(DATEDIFF(cmt_present_dd, motn_dd)), 1) AS avg_days, COUNT(*) AS cnt
+       FROM bill_tr
+       WHERE age = 22 AND cmt_present_dd IS NOT NULL AND curr_cmit_nm IS NOT NULL AND curr_cmit_nm != ''
+       GROUP BY curr_cmit_nm
+       HAVING cnt >= 10
+       ORDER BY avg_days ASC;`
+    );
+    if (cmitRows && cmitRows.length > 0) {
+      fastestCmit = cmitRows[0];
+      slowestCmit = cmitRows[cmitRows.length - 1];
+    }
+  } catch (err) {
+    console.error("HomePage server data fetch error:", err);
+  }
 
   return (
-    <main className="py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
-        
-        {/* 1. Hero 검색 섹션 */}
-        <div className="text-center space-y-3 py-2 sm:py-4">
-          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs sm:text-sm font-bold">
-            <Sparkles className="w-4 h-4 text-indigo-600" />
-            <span>제{CURRENT_AGE}대 국회 입법활동 팩트체크 브리핑</span>
-          </div>
-          <h1 className="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-            숫자와 데이터로 읽는 국회의원 성적표
-          </h1>
-          <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto break-keep">
-            단순 법안 발의 건수를 넘어 상임위 상정 및 본회의 실질가결(대안반영)까지 6대 핵심 역량을 객관적으로 분석합니다.
-          </p>
+    <div className="flex flex-col min-h-screen">
 
-          <div className="pt-2">
+      {/* =========================================================
+          ZONE 1. 오늘의 참여 & 우리 동네 (Daily Engagement)
+          배경: Clean White
+          ========================================================= */}
+      <section className="bg-white dark:bg-slate-950 py-8 sm:py-12">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8">
+          
+          {/* 1.1 통합 검색 바 */}
+          <div>
             <HomeHeroSearch />
           </div>
+
+          {/* 1.2 오늘의 쟁점 투표 & 우리 동네 의원실 (2분할 레이아웃) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div className="lg:col-span-6 h-full">
+              <DailyBillPollWidget />
+            </div>
+            <div className="lg:col-span-6 h-full">
+              <MyDistrictWidget />
+            </div>
+          </div>
+
         </div>
+      </section>
 
-        {/* 2. 오늘의 투표 & 우리 동네 의원 위젯 */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-          <div className="lg:col-span-7 flex flex-col h-full">
-            <DailyBillPollWidget />
+
+      {/* =========================================================
+          ZONE 2. 내 삶의 입법 체감 (Life & Persona Legislation)
+          배경: Soft Slate-50 / 테두리 구분선
+          ========================================================= */}
+      <section className="bg-slate-50/70 dark:bg-slate-900/50 border-y border-slate-200/80 dark:border-slate-800/80 py-12 sm:py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-10">
+          
+          {/* 2.1 섹션 통합 헤더 */}
+          <div className="flex flex-col gap-2">
+            <div className="inline-flex items-center gap-1.5 self-start rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700 dark:bg-indigo-950/70 dark:text-indigo-300">
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>체감형 생활 입법 분석</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
+              법안이 통과되면, 내 일상은 어떻게 바뀔까요?
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-2xl">
+              어려운 법률 용어 대신 Before & After 변화로 확인하고, 내 라이프스타일 분야에서 실질적으로 법안을 가결시킨 의원을 확인하세요.
+            </p>
           </div>
-          <div className="lg:col-span-5 flex flex-col h-full">
-            <MyDistrictWidget allMembers={data.allMembers} />
-          </div>
+
+          {/* 2.2 생활 변화 Before & After 위젯 */}
+          <LifeChangesWidget />
+
+          {/* 2.3 페르소나별 입법 성적표 위젯 */}
+          <PersonaLawmakerWidget />
+
         </div>
+      </section>
 
-        {/* 3. 생활 입법 Before & After (내 삶이 어떻게 바뀌나요?) */}
-        <LifeChangesWidget />
 
-        {/* 4. [신규] 페르소나별 입법 성적표 (내 라이프스타일을 챙겨주는 의원) */}
-        <PersonaLawmakerWidget />
-
-        {/* 5. 주간 시민 반응 레이더 (응원/감시 스탬프 TOP 3) */}
-        <CitizenReactionWidget allMembers={data.allMembers} />
-
-        {/* 6. 미니 거시 지표 요약 바 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm font-mono text-center">
-          <div className="p-3 bg-slate-50/80 rounded-xl">
-            <span className="text-xs sm:text-sm text-slate-500 block font-sans font-medium mb-0.5">등록 의원</span>
-            <strong className="text-lg sm:text-2xl font-black text-slate-900">
-              {data.macro.total_assemb_cnt}명
-            </strong>
-          </div>
-          <div className="p-3 bg-slate-50/80 rounded-xl">
-            <span className="text-xs sm:text-sm text-slate-500 block font-sans font-medium mb-0.5">대표발의 법안</span>
-            <strong className="text-lg sm:text-2xl font-black text-slate-900">
-              {data.macro.total_motn_cnt.toLocaleString()}건
-            </strong>
-          </div>
-          <div className="p-3 bg-slate-50/80 rounded-xl">
-            <span className="text-xs sm:text-sm text-slate-500 block font-sans font-medium mb-0.5">상임위 심사착수율</span>
-            <strong className="text-lg sm:text-2xl font-black text-indigo-600">
-              {data.macro.overall_cmt_present_rate}%
-            </strong>
-          </div>
-          <div className="p-3 bg-slate-50/80 rounded-xl">
-            <span className="text-xs sm:text-sm text-slate-500 block font-sans font-medium mb-0.5">본회의 실질가결률</span>
-            <strong className="text-lg sm:text-2xl font-black text-emerald-600">
-              {data.macro.overall_aprv_rate}%
-            </strong>
-          </div>
-        </div>
-
-        {/* 7. 3대 큐레이션 하이라이트 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* 🏆 랭킹 픽 */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 flex flex-col justify-between space-y-4">
-            <div className="space-y-3.5">
-              <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-amber-500" />
-                  <h3 className="font-bold text-sm sm:text-base text-slate-900">입법 랭킹 하이라이트</h3>
-                </div>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold border border-amber-200">
-                  TOP 성과
-                </span>
+      {/* =========================================================
+          ZONE 3. 제22대 입법 데이터 랩 (Legislative Data Lab)
+          배경: Clean White
+          ========================================================= */}
+      <section className="bg-white dark:bg-slate-950 py-12 sm:py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-10">
+          
+          {/* 3.1 섹션 헤더 */}
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/70 dark:text-blue-300">
+                <TrendingUp className="h-3.5 w-3.5" />
+                <span>제22대 국회 공식 통계</span>
               </div>
-
-              {data.topScorer && (
-                <div className="bg-indigo-50/60 rounded-xl p-3 border border-indigo-100 space-y-1">
-                  <span className="text-xs font-bold text-indigo-600 block">👑 제22대 국회 종합 1위</span>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <strong className="text-base font-bold text-slate-900">{data.topScorer.assemb_nm}</strong>
-                      <span className="text-xs text-slate-600 px-2 py-0.5 rounded bg-white border border-slate-200 font-medium">
-                        {data.topScorer.pltprt_nm}
-                      </span>
-                    </div>
-                    <span className="text-sm sm:text-base font-black font-mono text-indigo-700">
-                      {Number(data.topScorer.score).toFixed(1)}점
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {data.topAprvMember && (
-                <div className="bg-emerald-50/60 rounded-xl p-3 border border-emerald-100 space-y-1">
-                  <span className="text-xs font-bold text-emerald-700 block">⚡ 최다 본회의 실질가결</span>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <strong className="text-base font-bold text-slate-900">{data.topAprvMember.assemb_nm}</strong>
-                      <span className="text-xs text-slate-600 px-2 py-0.5 rounded bg-white border border-slate-200 font-medium">
-                        {data.topAprvMember.pltprt_nm}
-                      </span>
-                    </div>
-                    <span className="text-sm sm:text-base font-black font-mono text-emerald-700">
-                      총 {data.topAprvMember.aprv_cnt}건
-                    </span>
-                  </div>
-                </div>
-              )}
+              <h2 className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
+                300인 국회의원 입법 데이터 랩
+              </h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                단순 발의 건수 중심의 보여주기식 입법을 배제하고, 실질 가결과 심사 신속도를 정량 집계합니다.
+              </p>
             </div>
 
             <Link
               href="/rankings"
-              className="w-full py-2.5 px-3 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 font-bold text-xs sm:text-sm rounded-xl transition-colors flex items-center justify-center gap-1 group"
+              className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-all hover:bg-indigo-600 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-indigo-500 dark:hover:text-white"
             >
-              <span>300인 전수 순위 & 1:1 맞비교</span>
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              <span>300인 전체 순위 보기</span>
+              <ChevronRight className="h-4 w-4" />
             </Link>
           </div>
 
-          {/* ⚡ 입법 속보 */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 flex flex-col justify-between space-y-4">
-            <div className="space-y-3.5">
-              <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                  <h3 className="font-bold text-sm sm:text-base text-slate-900">최근 본회의 가결 법안</h3>
-                </div>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
-                  입법 완료
+          {/* 3.2 거시 핵심 지표 요약 바 (KPI Bar) */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5 dark:border-slate-800 dark:bg-slate-900/60">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">재적 의원</span>
+              <strong className="mt-1.5 text-2xl sm:text-3xl font-black font-mono text-slate-900 dark:text-slate-100 block">
+                {macro.total_members}명
+              </strong>
+              <span className="mt-1 text-[11px] text-slate-400">제22대 국회 공식</span>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5 dark:border-slate-800 dark:bg-slate-900/60">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">총 대표발의</span>
+              <strong className="mt-1.5 text-2xl sm:text-3xl font-black font-mono text-slate-900 dark:text-slate-100 block">
+                {Number(macro.total_bills).toLocaleString()}건
+              </strong>
+              <span className="mt-1 text-[11px] text-slate-400">의원 발의 법률안</span>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5 dark:border-slate-800 dark:bg-slate-900/60">
+              <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 block">상임위 심사착수율</span>
+              <strong className="mt-1.5 text-2xl sm:text-3xl font-black font-mono text-indigo-700 dark:text-indigo-300 block">
+                {macro.avg_cmt_present_rate}%
+              </strong>
+              <span className="mt-1 text-[11px] text-slate-400">발의 후 첫 상정 비율</span>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5 dark:border-slate-800 dark:bg-slate-900/60">
+              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 block">본회의 실질가결률</span>
+              <strong className="mt-1.5 text-2xl sm:text-3xl font-black font-mono text-emerald-700 dark:text-emerald-300 block">
+                {macro.avg_aprv_rate}%
+              </strong>
+              <span className="mt-1 text-[11px] text-slate-400">원안 + 대안반영 가결</span>
+            </div>
+          </div>
+
+          {/* 3.3 3대 큐레이션 하이라이트 */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            
+            {/* 하이라이트 1: 종합 1위 의원 카드 */}
+            <div className="rounded-2xl border border-slate-200 bg-linear-to-br from-indigo-50/50 via-white to-white p-5 shadow-xs dark:border-slate-800 dark:from-slate-900/80 dark:to-slate-900">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-black text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                  <Trophy className="h-3.5 w-3.5" />
+                  제22대 종합 1위
+                </span>
+                <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                  {topMember ? `${Number(topMember.score).toFixed(1)}점` : "-"}
                 </span>
               </div>
 
-              <div className="space-y-2">
-                {data.recentPassedBills.map((b) => (
-                  <div key={b.bill_id} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                    <div className="flex items-center justify-between text-xs text-slate-400 font-mono">
-                      <span className="text-slate-600 font-medium">{b.assemb_nm} ({b.pltprt_nm})</span>
-                      <span className="text-emerald-700 font-bold">{b.process_stat} ({b.process_dd})</span>
+              {topMember ? (
+                <div className="mt-4">
+                  <div className="flex items-baseline gap-2">
+                    <h3 className="text-xl font-black text-slate-900 dark:text-slate-100">
+                      {topMember.assemb_nm}
+                    </h3>
+                    <span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                      {topMember.pltprt_nm}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    {topMember.rgn_nm || "비례대표"}
+                  </p>
+
+                  <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-slate-50 p-3 text-xs dark:bg-slate-800/60">
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">실질가결</span>
+                      <strong className="font-mono text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                        {topMember.aprv_cnt}건
+                      </strong>
                     </div>
-                    <p className="font-semibold text-sm text-slate-800 truncate" title={b.bill_nm}>
-                      {b.bill_nm}
+                    <div>
+                      <span className="text-slate-400 block text-[11px]">대표발의</span>
+                      <strong className="font-mono text-sm font-bold text-slate-800 dark:text-slate-200">
+                        {topMember.ttl_motn_cnt}건
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-8 text-center text-xs text-slate-400">집계 중입니다.</div>
+              )}
+            </div>
+
+            {/* 하이라이트 2: 최근 본회의 가결 법안 속보 */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-slate-100">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  본회의 가결 속보
+                </span>
+                <Link href="/live" className="text-[11px] font-semibold text-indigo-600 hover:underline">
+                  더보기
+                </Link>
+              </div>
+
+              <div className="mt-3 space-y-2.5">
+                {recentPassedBills.length > 0 ? (
+                  recentPassedBills.map((b) => (
+                    <div key={b.bill_id} className="text-xs space-y-0.5">
+                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                        <span>{b.curr_cmit_nm || "소관위"}</span>
+                        <span>{b.process_dd}</span>
+                      </div>
+                      <p className="font-bold text-slate-800 dark:text-slate-200 truncate">
+                        {b.bill_nm}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-8 text-center text-xs text-slate-400">가결 내역 집계 중</div>
+                )}
+              </div>
+            </div>
+
+            {/* 하이라이트 3: 상임위 심사 속도 진단 */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-slate-100">
+                    <Clock className="h-4 w-4 text-indigo-600" />
+                    상임위 심사 속도 진단
+                  </span>
+                  <Link href="/committees" className="text-[11px] font-semibold text-indigo-600 hover:underline">
+                    병목 분석
+                  </Link>
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  <div className="rounded-xl bg-emerald-50/70 p-3 text-xs dark:bg-emerald-950/30">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-emerald-900 dark:text-emerald-300">최속 상임위</span>
+                      <strong className="font-mono text-emerald-700 dark:text-emerald-400">
+                        평균 {fastestCmit?.avg_days || "-"}일
+                      </strong>
+                    </div>
+                    <p className="mt-1 font-semibold text-slate-700 dark:text-slate-300">
+                      {fastestCmit?.curr_cmit_nm || "집계 중"}
                     </p>
                   </div>
-                ))}
-              </div>
-            </div>
 
-            <Link
-              href="/live"
-              className="w-full py-2.5 px-3 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 font-bold text-xs sm:text-sm rounded-xl transition-colors flex items-center justify-center gap-1 group"
-            >
-              <span>실시간 입법 파이프라인 피드</span>
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-            </Link>
-          </div>
-
-          {/* 📊 상임위 진단 */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 flex flex-col justify-between space-y-4">
-            <div className="space-y-3.5">
-              <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <Layers className="w-5 h-5 text-indigo-600" />
-                  <h3 className="font-bold text-sm sm:text-base text-slate-900">상임위 심사 속도 진단</h3>
-                </div>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold border border-indigo-200">
-                  17개 소관위
-                </span>
-              </div>
-
-              {data.bottleneckSummary.fastest && (
-                <div className="bg-emerald-50/50 rounded-xl p-3 border border-emerald-100 space-y-1">
-                  <span className="text-xs font-bold text-emerald-700 block">⚡ 심사 착수 가장 빠른 곳</span>
-                  <div className="flex items-center justify-between">
-                    <strong className="text-sm font-bold text-slate-900 truncate max-w-[150px]">
-                      {data.bottleneckSummary.fastest.name}
-                    </strong>
-                    <span className="text-sm font-mono font-bold text-emerald-700">
-                      평균 {data.bottleneckSummary.fastest.days}일
-                    </span>
+                  <div className="rounded-xl bg-rose-50/70 p-3 text-xs dark:bg-rose-950/30">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-rose-900 dark:text-rose-300">최장 지연(병목)</span>
+                      <strong className="font-mono text-rose-700 dark:text-rose-400">
+                        평균 {slowestCmit?.avg_days || "-"}일
+                      </strong>
+                    </div>
+                    <p className="mt-1 font-semibold text-slate-700 dark:text-slate-300">
+                      {slowestCmit?.curr_cmit_nm || "집계 중"}
+                    </p>
                   </div>
                 </div>
-              )}
+              </div>
 
-              {data.bottleneckSummary.slowest && (
-                <div className="bg-rose-50/50 rounded-xl p-3 border border-rose-100 space-y-1">
-                  <span className="text-xs font-bold text-rose-700 block">⚠️ 법안 심사 정체 주의 상임위</span>
-                  <div className="flex items-center justify-between">
-                    <strong className="text-sm font-bold text-slate-900 truncate max-w-[150px]">
-                      {data.bottleneckSummary.slowest.name}
-                    </strong>
-                    <span className="text-sm font-mono font-bold text-rose-700">
-                      평균 {data.bottleneckSummary.slowest.days}일
-                    </span>
-                  </div>
-                </div>
-              )}
+              <span className="mt-3 text-[10px] text-slate-400">
+                * 발의 후 상임위 첫 상정까지 걸린 소요일 기준
+              </span>
             </div>
 
-            <Link
-              href="/committees"
-              className="w-full py-2.5 px-3 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 text-slate-700 font-bold text-xs sm:text-sm rounded-xl transition-colors flex items-center justify-center gap-1 group"
-            >
-              <span>17개 상임위 병목 심층 분석</span>
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-            </Link>
           </div>
+
+          {/* 3.4 100점 평가 산식 배너 */}
+          <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-5 dark:border-indigo-950/60 dark:bg-indigo-950/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300">
+                공정한 입법 효율성 100점 만점 평가 기준
+              </span>
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                단순 발의 수보다 법안의 본회의 실질가결(45점)과 상임위 심사착수(35점)에 높은 가중치를 둡니다.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 font-mono text-xs font-bold text-indigo-900 dark:text-indigo-200 shrink-0">
+              <span className="rounded-lg bg-white px-2.5 py-1.5 shadow-xs dark:bg-slate-800">가결 45</span>
+              <span>+</span>
+              <span className="rounded-lg bg-white px-2.5 py-1.5 shadow-xs dark:bg-slate-800">상정 35</span>
+              <span>+</span>
+              <span className="rounded-lg bg-white px-2.5 py-1.5 shadow-xs dark:bg-slate-800">발의 20</span>
+            </div>
+          </div>
+
         </div>
+      </section>
 
-        {/* 8. 평가 기준 배너 */}
-        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <h4 className="font-bold text-base sm:text-lg flex items-center gap-2">
-              <Award className="w-5 h-5 text-indigo-400" />
-              공정 평가: 단순 발의 건수가 아닌 '실질적 성과' 중심 지표
-            </h4>
-            <p className="text-xs sm:text-sm text-slate-300 break-keep leading-relaxed font-normal">
-              발의만 하고 방치되는 법안을 방지하기 위해 <strong>본회의 실질가결(원안 100% + 대안반영 70%) 45점</strong>, <strong>상임위 상정 추진력 35점</strong>, <strong>발의 규모 20점</strong>을 반영하여 100점 만점으로 투명하게 평가합니다.
+
+      {/* =========================================================
+          ZONE 4. 시민 참여 광장 (Citizen Sentiment)
+          배경: Soft Slate-50 / 상단 구분선
+          ========================================================= */}
+      <section className="bg-slate-50/70 dark:bg-slate-900/50 border-t border-slate-200/80 dark:border-slate-800/80 py-12 sm:py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8">
+          
+          <div className="flex flex-col gap-2">
+            <div className="inline-flex items-center gap-1.5 self-start rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700 dark:bg-rose-950/70 dark:text-rose-300">
+              <Users className="h-3.5 w-3.5" />
+              <span>시민 여론 & 감정 레이더</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
+              국회의원을 향한 시민들의 실시간 반응
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              최근 7일간 시민들이 스탬프로 표현한 가장 응원받는 의원과 가장 주목(분발)받는 의원 TOP 3입니다.
             </p>
           </div>
 
-          <Link
-            href="/rankings"
-            className="inline-flex items-center gap-1.5 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs sm:text-sm font-bold text-white shadow transition-all shrink-0 self-end md:self-auto"
-          >
-            <span>전체 의원 성적표 확인</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
+          <CitizenReactionWidget />
 
-      </div>
-    </main>
+        </div>
+      </section>
+
+    </div>
   );
 }

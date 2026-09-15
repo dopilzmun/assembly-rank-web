@@ -135,3 +135,8 @@
 4. **잔여 미사용 컴포넌트 정리 대상:**
    * `src/components/LiveRadarView.tsx` (미호출 컴포넌트)
    * `src/components/MemberEmotionStamps.tsx` (미호출 컴포넌트)
+   
+## 6. 변경 이력 (Changelog)
+* **2026-09-15 (Phase 1 UI/UX 개선):** 메인 홈 화면(`src/app/page.tsx`) 4대 테마 Zone 구획화(Zone 1: 참여/동네, Zone 2: 생활/페르소나, Zone 3: 데이터랩/랭킹, Zone 4: 시민광장) 및 제브라 섹셔닝(배경 톤 교차), 통합 섹션 헤더 디자인 적용 완료.
+* **2026-09-15:** 페르소나 위젯(`PersonaLawmakerWidget`) 상세 보기를 `AssembDetailDrawer`로 통합, `/api/assemblies/[assembId]/bills` 엔드포인트 연동 정상화, `HexagonRadarChart` 최상단 배치.
+* **2026-09-14:** 생활 입법 Before & After(`LifeChangesWidget`) 및 DB 수집 파이프라인 추가.
