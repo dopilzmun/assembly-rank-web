@@ -193,62 +193,12 @@ export default async function HomePage() {
 
 
       {/* =========================================================
-          ZONE 2. [전진 배치] 화제의 의원 & 실시간 시민 감정 레이더
+          ZONE 2. [전진 배치] 제22대 팩트체크 & 데이터 랩 (Legislative Data Lab)
           ========================================================= */}
       <section className="bg-slate-50/70 dark:bg-slate-900/50 border-y border-slate-200/80 dark:border-slate-800/80 py-12 sm:py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8">
-          <div className="flex flex-col gap-2">
-            <div className="inline-flex items-center gap-1.5 self-start rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700 dark:bg-rose-950/70 dark:text-rose-300">
-              <Users className="h-3.5 w-3.5" />
-              <span>실시간 시민 감정 레이더</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
-              지금 시민들의 민심은 어디로 향하고 있을까요?
-            </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              최근 7일간 시민들이 스탬프로 표현한 가장 응원받는 의원과 가장 주목(분발)받는 의원 TOP 3입니다.
-            </p>
-          </div>
-
-          <CitizenReactionWidget allMembers={allMembers} />
-        </div>
-      </section>
-
-
-      {/* =========================================================
-          ZONE 3. 내 삶의 입법 체감 & 맞춤 의원 (Life & Persona)
-          ========================================================= */}
-      <section className="bg-white dark:bg-slate-950 py-12 sm:py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-10">
-          <div className="flex flex-col gap-2">
-            <div className="inline-flex items-center gap-1.5 self-start rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700 dark:bg-indigo-950/70 dark:text-indigo-300">
-              <Sparkles className="h-3.5 w-3.5" />
-              <span>체감형 생활 입법 분석</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
-              법안이 통과되면, 내 일상은 어떻게 바뀔까요?
-            </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-2xl">
-              어려운 법률 용어 대신 Before & After 변화로 확인하고, 내 라이프스타일 분야에서 실질적으로 법안을 가결시킨 의원을 확인하세요.
-            </p>
-          </div>
-
-          {/* 3.1 생활 변화 Before & After 위젯 */}
-          <LifeChangesWidget />
-
-          {/* 3.2 페르소나별 입법 성적표 위젯 */}
-          <PersonaLawmakerWidget allMembers={allMembers} />
-        </div>
-      </section>
-
-
-      {/* =========================================================
-          ZONE 4. 제22대 팩트체크 & 데이터 랩 (Legislative Data Lab)
-          ========================================================= */}
-      <section className="bg-slate-50/70 dark:bg-slate-900/50 border-t border-slate-200/80 dark:border-slate-800/80 py-12 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-10">
           
-          {/* 4.1 섹션 헤더 (모바일 액션 버튼 정렬 최적화) */}
+          {/* 2.1 섹션 헤더 & 랭킹 링크 */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
               <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/70 dark:text-blue-300">
@@ -272,7 +222,7 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          {/* 4.2 거시 핵심 지표 요약 바 (모바일 반응형 타이포그래피 & 아이콘 보강) */}
+          {/* 2.2 거시 핵심 지표 요약 바 (모바일 반응형 타이포그래피 & 아이콘 보강) */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             
             {/* KPI 1: 재적 의원 */}
@@ -341,7 +291,7 @@ export default async function HomePage() {
 
           </div>
 
-          {/* 4.3 3대 큐레이션 하이라이트 (모바일 카드 가독성 & 컴팩트 그리드 최적화) */}
+          {/* 2.3 3대 큐레이션 하이라이트 (종합 1위, 본회의 가결 속보, 상임위 병목) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             
             {/* 하이라이트 1: 종합 1위 의원 카드 */}
@@ -461,7 +411,6 @@ export default async function HomePage() {
                 </div>
 
                 <div className="mt-3 space-y-2.5">
-                  {/* 최속 상임위 */}
                   <div className="rounded-xl bg-emerald-50/60 p-3 text-xs dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/60">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-emerald-900 dark:text-emerald-300 flex items-center gap-1">
@@ -477,7 +426,6 @@ export default async function HomePage() {
                     </p>
                   </div>
 
-                  {/* 최장 지연 상임위 (병목) */}
                   <div className="rounded-xl bg-rose-50/60 p-3 text-xs dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/60">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-rose-900 dark:text-rose-300 flex items-center gap-1">
@@ -502,7 +450,7 @@ export default async function HomePage() {
 
           </div>
 
-          {/* 4.4 100점 만점 공정 평가 산식 배너 (반응형 칩 리디자인) */}
+          {/* 2.4 100점 만점 공정 평가 산식 배너 (반응형 칩 리디자인) */}
           <div className="rounded-2xl border border-indigo-200/80 bg-gradient-to-r from-indigo-50/80 via-white to-indigo-50/40 p-5 dark:border-indigo-950/80 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950/40 flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-xs">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
@@ -516,7 +464,6 @@ export default async function HomePage() {
               </p>
             </div>
 
-            {/* 평가 가중치 칩 (컬러 코딩) */}
             <div className="flex items-center gap-1.5 sm:gap-2 font-mono text-xs font-black shrink-0 flex-wrap">
               <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white border border-emerald-200 text-emerald-700 shadow-xs dark:bg-slate-800 dark:border-emerald-900 dark:text-emerald-300">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -535,6 +482,56 @@ export default async function HomePage() {
             </div>
           </div>
 
+        </div>
+      </section>
+
+
+      {/* =========================================================
+          ZONE 3. 내 삶의 입법 체감 & 맞춤 의원 (Life & Persona)
+          ========================================================= */}
+      <section className="bg-white dark:bg-slate-950 py-12 sm:py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-10">
+          <div className="flex flex-col gap-2">
+            <div className="inline-flex items-center gap-1.5 self-start rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700 dark:bg-indigo-950/70 dark:text-indigo-300">
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>체감형 생활 입법 분석</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
+              법안이 통과되면, 내 일상은 어떻게 바뀔까요?
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-2xl">
+              어려운 법률 용어 대신 Before & After 변화로 확인하고, 내 라이프스타일 분야에서 실질적으로 법안을 가결시킨 의원을 확인하세요.
+            </p>
+          </div>
+
+          {/* 3.1 생활 변화 Before & After 위젯 */}
+          <LifeChangesWidget />
+
+          {/* 3.2 페르소나별 입법 성적표 위젯 */}
+          <PersonaLawmakerWidget allMembers={allMembers} />
+        </div>
+      </section>
+
+
+      {/* =========================================================
+          ZONE 4. 실시간 시민 감정 레이더 & 피드백 (Citizen Reaction)
+          ========================================================= */}
+      <section className="bg-slate-50/70 dark:bg-slate-900/50 border-t border-slate-200/80 dark:border-slate-800/80 py-12 sm:py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-8">
+          <div className="flex flex-col gap-2">
+            <div className="inline-flex items-center gap-1.5 self-start rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700 dark:bg-rose-950/70 dark:text-rose-300">
+              <Users className="h-3.5 w-3.5" />
+              <span>실시간 시민 감정 레이더</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
+              지금 시민들의 민심은 어디로 향하고 있을까요?
+            </h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              최근 7일간 시민들이 스탬프로 표현한 가장 응원받는 의원과 가장 주목(분발)받는 의원 TOP 3입니다.
+            </p>
+          </div>
+
+          <CitizenReactionWidget allMembers={allMembers} />
         </div>
       </section>
 

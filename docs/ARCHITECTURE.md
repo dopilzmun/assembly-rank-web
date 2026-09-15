@@ -41,6 +41,14 @@
 
 ---
 
+### 1.2 메인 홈 화면 4대 구역 구조 (`src/app/page.tsx`)
+1. **ZONE 1 (Daily Engagement):** `HomeHeroSearch`, `DailyBillPollWidget`, `MyDistrictWidget` (개인화 참여 훅)
+2. **ZONE 2 (Legislative Data Lab):** **[전진 배치]** 4대 거시 KPI, 제22대 종합 1위 의원, 본회의 가결 속보, 상임위 심사 속도 병목, 100점 평가 산식 배너 (서비스 핵심 정체성 및 공정성 확립)
+3. **ZONE 3 (Life & Persona):** `LifeChangesWidget`, `PersonaLawmakerWidget` (생활 변화 체감 및 맞춤 의원)
+4. **ZONE 4 (Citizen Reaction Radar):** `CitizenReactionWidget` (최근 7일 시민 스탬프 민심 레이더)
+
+---
+
 ### 🗂️ [핵심 공통 모달] 의정활동 상세 성적표 드로어 (`src/components/AssembDetailDrawer.tsx` - Client Component)
 - **헤더:** 제22대 국회 라벨, 닫기(X) 버튼 (ESC 키 및 배경 딤 클릭 닫기 지원)
 - **프로필 카드:** 의원명, 소속 정당 뱃지, 지역구/상임위, 종합 평가 점수 및 전체 순위
@@ -236,6 +244,8 @@
   - 모바일 브라우저 툴바 및 플로팅 버튼 간섭 문제를 해결하기 위해 `Navigation.tsx`에 `상단 고정` / `하단 고정` 원터치 스위치 탑재.
   - 선택값은 `localStorage`에 영구 보존되며, 위치에 따라 본문 하단 패딩이 자동 제어되어 불필요한 공백을 완전히 제거.
   - 중복 파일인 `MobileBottomNav.tsx`를 정리하고 단일 컴포넌트로 일원화.
-
 * **2026-09-15 (입법 투표 센터 통합 허브 개편):**
   - `/poll/archive` 페이지 상단에 `DailyBillPollWidget`을 배치하여 네비게이션의 [오늘의 투표] 클릭 시 당일 투표와 지난 아카이브를 한 페이지에서 완벽하게 이용할 수 있도록 UX 일원화.
+* **2026-09-15 (메인 홈 Zone 2/4 위치 최적화 및 스토리텔링 재배치):**
+  - 서비스의 핵심 정체성인 '300인 입법 데이터 랩'을 Zone 4에서 Zone 2로 전진 배치하여 첫 스크롤에서 공정한 100점 만점 평가 기준과 종합 1위 및 랭킹 진입 CTA를 즉시 각인.
+  - '실시간 시민 감정 레이더'는 데이터 탐색 후 민심을 확인하는 Zone 4로 재배치하여 배경색(White/Slate 교차) 및 정보 흐름의 리듬감 완성.
