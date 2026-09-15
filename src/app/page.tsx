@@ -22,7 +22,11 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 
-export const dynamic = "force-dynamic";
+// 기존 코드:
+// export const dynamic = "force-dynamic";
+
+// 변경 코드: 1시간(3,600초) 단위 엣지 CDN 캐싱 및 정적 렌더링 (ISR)
+export const revalidate = 3600;
 
 interface MacroStatsRow extends RowDataPacket {
   total_members: number;
