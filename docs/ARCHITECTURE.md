@@ -107,10 +107,14 @@
 * `assemb_mastr`: 대한민국 국회의원 기본 마스터 (의원ID, 성명, 정당, 지역구, 소관상임위 등)
 * `bill_tr`: 의안 트랜잭션 원장 (의안ID, 의안명, 대표발의의원ID `repve_assemb_id`, 발의일, 상정일, 처리상태 `process_stat`, 처리일자)
 * `bill_lvlhd_chng_mastr`: 생활 입법 Before & After 마스터 테이블
+  * **표준 카테고리 코드 (`ctgr_se`):** `WORK`(직장·노동), `HOUSE`(주거·부동산), `CARE`(육아·돌봄), `FIN`(금융·경제), `TRAF`(교통·이동), `LIFE`(생활·안전)
+  * **식별자 규칙:** 실제 국회 의안정보시스템 연동을 위해 반드시 `PRC_...` 원장 고유 `bill_id`로 관리
 * `assemb_stamp_log` **[신규/정규화]**: 시민 감정 스탬프 원장 (`stamp_seq`, `assemb_id`, `stamp_type`, `ip_hsh_val`, `rgstdt`)
 * `daily_bill_poll`: 일일 쟁점 법안 투표 마스터
 * `daily_bill_poll_log`: 투표 참여 중복 방지 이력
 * `district_feedback`: 지역구 의원실 한마디 보드
+
+---
 
 ### 3.2 표준 통계 뷰 (Standardized Database Views)
 * `vw_bill_efct_rnkg_01`: 국회의원 종합 입법 효율성 및 6대 역량 100점 만점 평가 랭킹 뷰
@@ -190,3 +194,6 @@
 * **2026-09-15 (페르소나 뷰 스키마 일치화):** `vw_assemb_lvlhd_ctgr_stts_01` 실제 확인된 물리 컬럼과 6대 표준 코드(`CARE, FIN, HOUSE, LIFE, TRAF, WORK`)를 `/api/district/persona` 및 `PersonaLawmakerWidget`에 1:1 완벽 동기화 완료.
 * **2026-09-15 (생활입법 ETL 워크플로우 공식 등록):** `.github/workflows/generate_life_changes.yml` 생성 및 GitHub Actions 스케줄러(평일 22시) 연동. `generate_life_changes.py`를 통한 `bill_lvlhd_chng_mastr` 정규 파이프라인 가동.
 * **2026-09-15 (ETL GitHub Actions 파이프라인 공식 등록):** `assembly_rank_etl` 저장소에 `generate_life_changes.yml` 워크플로우 연동 및 6대 표준 카테고리(`WORK, HOUSE, CARE, FIN, TRAF, LIFE`) 적재 명세 동기화.
+* **2026-09-15 (생활입법 카테고리 표준 코드 및 UI 뱃지 완벽 동기화):** 
+  - `LifeChangesWidget`: 상단 필터 탭을 6대 표준 코드(`WORK, HOUSE, CARE, FIN, TRAF, LIFE`)로 재배치하고, 카드 뱃지에 영문 코드 대신 한글 명칭과 맞춤형 테마 색상 적용 완료.
+  - `/api/district/life-changes`: 영문 코드 및 한글 파라미터 양방향 매핑 처리로 특정 분야 필터 클릭 시 정상 조회 보장.

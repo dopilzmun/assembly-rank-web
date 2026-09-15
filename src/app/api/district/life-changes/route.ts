@@ -18,11 +18,37 @@ interface LifeChangeRow extends RowDataPacket {
   symp_cnt: number;
 }
 
-// GET: 순수 조회 전용 (어떠한 INSERT도 수행하지 않음)
+// 한글 탭 파라미터가 유입되어도 표준 코드로 안전하게 매핑
+const KOREAN_TO_CODE: Record<string, string> = {
+  "직장·노동": "WORK",
+  "직장/노동": "WORK",
+  "직장": "WORK",
+  "노동": "WORK",
+  "주거·부동산": "HOUSE",
+  "주거/부동산": "HOUSE",
+  "주거": "HOUSE",
+  "부동산": "HOUSE",
+  "육아·돌봄": "CARE",
+  "육아/교육": "CARE",
+  "육아": "CARE",
+  "돌봄": "CARE",
+  "금융·경제": "FIN",
+  "금융/경제": "FIN",
+  "금융": "FIN",
+  "경제": "FIN",
+  "교통·이동": "TRAF",
+  "교통/이동": "TRAF",
+  "교통": "TRAF",
+  "생활·안전": "LIFE",
+  "생활/안전": "LIFE",
+  "생활": "LIFE",
+  "안전": "LIFE",
+};
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const ctgrParam = searchParams.get("ctgr_se");
+    const ctgrParam = searchParams.get("ctgr_se")?.trim();
 
     let sql = `
       SELECT 
@@ -35,8 +61,9 @@ export async function GET(req: NextRequest) {
     const params: string[] = [];
 
     if (ctgrParam && ctgrParam !== "ALL") {
+      const targetCode = KOREAN_TO_CODE[ctgrParam] || ctgrParam.toUpperCase();
       sql += ` AND ctgr_se = ?`;
-      params.push(ctgrParam.toUpperCase());
+      params.push(targetCode);
     }
 
     sql += ` ORDER BY symp_cnt DESC, chng_seq DESC LIMIT 30;`;
@@ -49,7 +76,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST: 시민 공감수 증가 전용
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
