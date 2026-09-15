@@ -15,16 +15,18 @@
 ---
 
 ### 🏠 1. 홈 화면 (`src/app/page.tsx` - Server Component)
-- `HomeHeroSearch.tsx` (통합 의원·정당·지역구 검색 바)
-- [오늘의 쟁점 & 우리 동네 의원] (좌우 2분할 레이아웃)
-  ├─ `DailyBillPollWidget.tsx` (오늘의 쟁점 법안 1초 찬반 투표)
-  └─ `MyDistrictWidget.tsx` (우리 동네 의원 + GPS 1초 인증 + 최신 한마디 말풍선)
+- `HomeHeroSearch.tsx` (통합 검색 바)
+- [Zone 1] 참여 & 동네 의원
+  ├─ `DailyBillPollWidget.tsx` (오늘의 쟁점 법안 1초 투표)
+  └─ `MyDistrictWidget.tsx` (우리 동네 의원, `allMembers` Props 수신)
        └─ `AssembDetailDrawer.tsx` (의원 상세 성적표 Drawer)
-- `LifeChangesWidget.tsx` (생활 입법 Before & After: 내 삶이 어떻게 바뀌나요? - 신규)
-- `PersonaLawmakerWidget.tsx` (페르소나별 입법 성적표: 라이프스타일 대변 의원 TOP 6 - 신규)
-  └─ `AssembDetailDrawer.tsx` (클릭 시 전역 상세 드로어 호출)
-- `CitizenReactionWidget.tsx` (주간 시민 반응 레이더: 응원/감시 스탬프 TOP 3)
-  └─ `AssembDetailDrawer.tsx`
+- [Zone 2] 내 삶의 입법 체감
+  ├─ `LifeChangesWidget.tsx` (생활 입법 Before & After)
+  └─ `PersonaLawmakerWidget.tsx` (페르소나별 입법 성적표)
+- [Zone 3] 데이터 랩 & 거시 통계
+- [Zone 4] 시민 참여 광장
+  └─ `CitizenReactionWidget.tsx` (주간 시민 반응 레이더, `allMembers` Props 수신)
+       └─ `AssembDetailDrawer.tsx`
 - [미니 거시 지표 요약 바] (등록 의원, 대표발의 건수, 상임위 심사착수율, 본회의 실질가결률)
 - [3대 큐레이션 하이라이트]
   ├─ 입법 랭킹 하이라이트 (제22대 종합 1위 & 최다 본회의 실질가결)
@@ -137,6 +139,8 @@
    * `src/components/MemberEmotionStamps.tsx` (미호출 컴포넌트)
    
 ## 6. 변경 이력 (Changelog)
+* **2026-09-14:** 생활 입법 Before & After(`LifeChangesWidget`) 및 DB 수집 파이프라인 추가.
 * **2026-09-15 (Phase 1 UI/UX 개선):** 메인 홈 화면(`src/app/page.tsx`) 4대 테마 Zone 구획화(Zone 1: 참여/동네, Zone 2: 생활/페르소나, Zone 3: 데이터랩/랭킹, Zone 4: 시민광장) 및 제브라 섹셔닝(배경 톤 교차), 통합 섹션 헤더 디자인 적용 완료.
 * **2026-09-15:** 페르소나 위젯(`PersonaLawmakerWidget`) 상세 보기를 `AssembDetailDrawer`로 통합, `/api/assemblies/[assembId]/bills` 엔드포인트 연동 정상화, `HexagonRadarChart` 최상단 배치.
-* **2026-09-14:** 생활 입법 Before & After(`LifeChangesWidget`) 및 DB 수집 파이프라인 추가.
+* **2026-09-15 (TS Build Fix):** `page.tsx`에서 `vw_bill_efct_rnkg_01` 300인 전원 데이터(`allMembers`) 조회 로직 복원하여 `MyDistrictWidget` 및 `CitizenReactionWidget` 컴포넌트 TS2741 Props 누락 빌드 에러 해결.
+* **2026-09-15 (Phase 1 UI/UX 개선):** 메인 홈 화면(`src/app/page.tsx`) 4대 테마 Zone 구획화(참여, 생활입법, 데이터랩, 시민광장) 및 제브라 섹셔닝 적용.

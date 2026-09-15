@@ -1,6 +1,7 @@
 import Link from "next/link";
 import pool from "@/lib/db";
 import { RowDataPacket } from "mysql2";
+import { BillRankingRow } from "@/types/ranking";
 import HomeHeroSearch from "@/components/HomeHeroSearch";
 import DailyBillPollWidget from "@/components/DailyBillPollWidget";
 import MyDistrictWidget from "@/components/MyDistrictWidget";
@@ -9,17 +10,12 @@ import PersonaLawmakerWidget from "@/components/PersonaLawmakerWidget";
 import CitizenReactionWidget from "@/components/CitizenReactionWidget";
 import {
   Trophy,
-  Award,
   Clock,
   CheckCircle2,
-  FileText,
   ChevronRight,
   TrendingUp,
-  Vote,
   Sparkles,
   Users,
-  ShieldCheck,
-  Zap,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -67,6 +63,7 @@ export default async function HomePage() {
   let recentPassedBills: RecentPassedBillRow[] = [];
   let fastestCmit: CommitteeSpeedRow | null = null;
   let slowestCmit: CommitteeSpeedRow | null = null;
+  let allMembers: BillRankingRow[] = [];
 
   try {
     // 1. 거시 지표 집계
@@ -120,6 +117,38 @@ export default async function HomePage() {
       fastestCmit = cmitRows[0];
       slowestCmit = cmitRows[cmitRows.length - 1];
     }
+
+    // 5. 전체 300인 의원 랭킹 데이터 (MyDistrictWidget 및 CitizenReactionWidget 전송용)
+    const [allMemberRows] = await pool.query<RowDataPacket[]>(
+      `SELECT 
+        assemb_id,
+        age,
+        assemb_nm,
+        pltprt_nm,
+        rgn_nm,
+        cmit_nm,
+        DATE_FORMAT(term_start_dd, '%Y-%m-%d') AS term_start_dd,
+        is_deferred,
+        monthly_pace,
+        ttl_motn_cnt,
+        pure_aprv_cnt,
+        alt_aprv_cnt,
+        aprv_cnt,
+        dss_cnt,
+        aprv_rate,
+        cmt_present_cnt,
+        cmt_present_rate,
+        avg_cmt_days,
+        own_cmit_motn_cnt,
+        own_cmit_motn_rate,
+        score,
+        rnkg
+       FROM vw_bill_efct_rnkg_01
+       WHERE age = 22
+       ORDER BY rnkg ASC;`
+    );
+    allMembers = (allMemberRows || []) as unknown as BillRankingRow[];
+
   } catch (err) {
     console.error("HomePage server data fetch error:", err);
   }
@@ -145,7 +174,7 @@ export default async function HomePage() {
               <DailyBillPollWidget />
             </div>
             <div className="lg:col-span-6 h-full">
-              <MyDistrictWidget />
+              <MyDistrictWidget allMembers={allMembers} />
             </div>
           </div>
 
@@ -420,7 +449,7 @@ export default async function HomePage() {
             </p>
           </div>
 
-          <CitizenReactionWidget />
+          <CitizenReactionWidget allMembers={allMembers} />
 
         </div>
       </section>
