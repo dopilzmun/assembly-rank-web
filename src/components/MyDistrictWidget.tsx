@@ -108,6 +108,7 @@ export default function MyDistrictWidget({ allMembers }: MyDistrictWidgetProps) 
             setDistrict(targetDistrict);
             localStorage.setItem("user_district", targetDistrict);
             matchMember(targetDistrict);
+            setIsDrawerOpen(false); // 인증 직후 자동 팝업 방지
           } else {
             alert(
               "현재 위치의 지역구를 특정하지 못했습니다. [지역구 직접 선택] 버튼으로 거주 동네를 선택해 주세요."
@@ -137,6 +138,7 @@ export default function MyDistrictWidget({ allMembers }: MyDistrictWidgetProps) 
       localStorage.setItem("user_district", selected.rgn_nm);
       setMember(selected);
       fetchLatestFeedback(selected.assemb_id);
+      setIsDrawerOpen(false); // 선택 직후 자동 팝업 방지
     }
     setIsSearchModalOpen(false);
   };
@@ -181,7 +183,7 @@ export default function MyDistrictWidget({ allMembers }: MyDistrictWidgetProps) 
           </div>
         </div>
 
-        {/* 2. 본문 내용 */}
+        {/* 2. 본문 내용 (위젯 카드 내 요약 표출) */}
         {member ? (
           <div className="mt-2 space-y-3">
             <div className="flex items-baseline gap-2">
@@ -332,9 +334,9 @@ export default function MyDistrictWidget({ allMembers }: MyDistrictWidgetProps) 
         </div>
       )}
 
-      {/* 모달 연동: 의정활동 상세 드로어 */}
+      {/* 모달 연동: isDrawerOpen 상태에 따라 정확히 마운트/언마운트 */}
       <AssembDetailDrawer
-        assemb={member}
+        assemb={isDrawerOpen ? member : null}
         onClose={() => setIsDrawerOpen(false)}
       />
     </div>
