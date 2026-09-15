@@ -156,7 +156,6 @@
 
 ---
 
-
 ## 5. 파편화 방지 및 아키텍처 규칙 (Housekeeping Guidelines)
 
 1. **상세 화면 단일화 원칙:** 의원 상세 정보는 절대 신규 독립 라우트(예: `/rankings/[id]` 등)로 파편화하지 않으며, 전역 모달 컴포넌트인 `AssembDetailDrawer.tsx`를 단일 채널로 재사용한다.
@@ -165,6 +164,17 @@
 4. **잔여 미사용 컴포넌트 정리 대상:**
    * `src/components/LiveRadarView.tsx` (미호출 컴포넌트)
    * `src/components/MemberEmotionStamps.tsx` (미호출 컴포넌트)
+
+---
+
+### 🗂️ AssembDetailDrawer.tsx 탭 아키텍처
+* **고정 프로필 헤더:** 의원 성명, 정당 뱃지, 지역구/상임위, 종합평가 점수 및 1:1 맞비교 대결 버튼
+* **3대 서브 탭 분할:**
+  1. `overview` (입법 역량·지표): 6대 역량 육각 상태도 + 6대 세부 지표 그리드 + 가중치 산식 안내
+  2. `bills` (대표발의 법안): 최근 대표발의 5건 목록 + 본회의 처리상태 + LIKMS 공식 링크
+  3. `community` (시민 민심·한마디): 4대 감정 스탬프 + 지역구 주민 한마디 게시판
+
+---
    
 ## 6. 변경 이력 (Changelog)
 * **2026-09-14:** 생활 입법 Before & After(`LifeChangesWidget`) 및 DB 수집 파이프라인 추가.
@@ -197,3 +207,5 @@
 * **2026-09-15 (생활입법 카테고리 표준 코드 및 UI 뱃지 완벽 동기화):** 
   - `LifeChangesWidget`: 상단 필터 탭을 6대 표준 코드(`WORK, HOUSE, CARE, FIN, TRAF, LIFE`)로 재배치하고, 카드 뱃지에 영문 코드 대신 한글 명칭과 맞춤형 테마 색상 적용 완료.
   - `/api/district/life-changes`: 영문 코드 및 한글 파라미터 양방향 매핑 처리로 특정 분야 필터 클릭 시 정상 조회 보장.
+* **2026-09-15 (Phase 3-1 드로어 3-Tab UI 개편 및 모바일 UX 고도화):** `AssembDetailDrawer.tsx`를 3대 서브 탭(입법 역량 / 대표발의 법안 / 시민 민심) 구조로 전환하여 모바일 스크롤 피로도를 획기적으로 줄이고, 터치 반경 및 안전 여백 최적화 완료.
+* **2026-09-15 (생활입법 카테고리 표준 코드 일치화):** 6대 표준 코드(`CARE, FIN, HOUSE, LIFE, TRAF, WORK`) 동기화 및 LIKMS 원문 링크 복구.
