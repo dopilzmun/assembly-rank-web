@@ -126,6 +126,13 @@
 
 ---
 
+### 3.3 자동화 파이프라인 (GitHub Actions)
+* `.github/workflows/generate_life_changes.yml`: 
+  - **주기:** 매일 평일 22:00 KST (13:00 UTC) 및 수동 실행(`workflow_dispatch`)
+  - **역할:** 제22대 실질가결 법안 대상 Gemini AI 기반 생활 체감형 Before & After 요약 및 `bill_lvlhd_chng_mastr` 적재
+
+---
+
 ## 4. 데이터 수집 및 AI 정제 파이프라인 (`assembly_rank_etl`)
 
 * `generate_daily_poll.py`: 22대 국회 최근 발의 법안 중 국민 쟁점 법안 1건을 Gemini Flash 모델로 자동 선정하여 `daily_bill_poll`에 적재
@@ -133,6 +140,18 @@
 * `.github/workflows/generate_life_changes.yml` **[신규]**: 매일 밤 평일 22:00 KST에 가결 법안 생활 변화 분석을 자동 수행하는 GitHub Actions 워크플로우
 
 ---
+
+### 4.2 외부 배치 및 ETL 파이프라인 연계
+* **ETL 저장소 경로:** `D:\zVms\Python\Prjct\assembly_rank_etl`
+* **생활 입법 체감 ETL 스케줄러 (`.github/workflows/generate_life_changes.yml`):**
+  * **주기:** 매일 평일 22:00 KST (`cron: '0 13 * * 1-5'`) 및 `workflow_dispatch` 수동 트리거
+  * **실행 명령:** `python generate_life_changes.py --batch 15`
+  * **적재 대상 테이블:** `bill_lvlhd_chng_mastr`
+  * **표준 분류 코드:** `WORK`, `HOUSE`, `CARE`, `FIN`, `TRAF`, `LIFE` (6대 표준 엄격 준수)
+  * **식별자 규칙:** 실제 국회 의안정보시스템 연동을 위해 반드시 `PRC_...` 원장 고유 `bill_id`로 적재
+
+---
+
 
 ## 5. 파편화 방지 및 아키텍처 규칙 (Housekeeping Guidelines)
 
@@ -169,3 +188,5 @@
   - `AssembDetailDrawer`: `/api/assemblies/[assembId]/bills` 쿼리에서 MySQL2의 `LIMIT ?` 바인딩 파싱 에러를 정수 직접 주입(`LIMIT ${safeLimit}`)으로 원천 차단하여 최근 발의 법안 목록이 정상 출력되도록 수정.
   - `PersonaLawmakerWidget`: ID 매칭 실패 시 성명/정당 매칭 폴백 적용하여 드로어 데이터 공백 현상 해소.
 * **2026-09-15 (페르소나 뷰 스키마 일치화):** `vw_assemb_lvlhd_ctgr_stts_01` 실제 확인된 물리 컬럼과 6대 표준 코드(`CARE, FIN, HOUSE, LIFE, TRAF, WORK`)를 `/api/district/persona` 및 `PersonaLawmakerWidget`에 1:1 완벽 동기화 완료.
+* **2026-09-15 (생활입법 ETL 워크플로우 공식 등록):** `.github/workflows/generate_life_changes.yml` 생성 및 GitHub Actions 스케줄러(평일 22시) 연동. `generate_life_changes.py`를 통한 `bill_lvlhd_chng_mastr` 정규 파이프라인 가동.
+* **2026-09-15 (ETL GitHub Actions 파이프라인 공식 등록):** `assembly_rank_etl` 저장소에 `generate_life_changes.yml` 워크플로우 연동 및 6대 표준 카테고리(`WORK, HOUSE, CARE, FIN, TRAF, LIFE`) 적재 명세 동기화.
