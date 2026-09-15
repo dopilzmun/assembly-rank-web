@@ -154,4 +154,6 @@
   - `MyDistrictWidget`: OpenStreetMap Nominatim 403 차단 방지를 위한 `User-Agent` 헤더 적용, 자치구 정밀 매칭 복구 및 GPS 실패 시에도 100% 선택 가능한 '지역구 직접 검색/선택 모달' 기능 신규 탑재.
 * **2026-09-15 (Phase 2 UI/UX 카드 통일 & 폴리싱):** Zone 1의 `DailyBillPollWidget`과 `MyDistrictWidget`에 높이 균등(`h-full flex flex-col justify-between`) 구조 적용.
 * **2026-09-15 (동네 의원 드로어 영구 오픈 버그 수정):** `MyDistrictWidget.tsx`에서 `AssembDetailDrawer` 호출 시 `assemb` prop에 항상 `member`를 넘겨 드로어가 닫히지 않고 새로고침 시에도 상시 노출되던 문제를 `assemb={isDrawerOpen ? member : null}` 조건부 바인딩으로 수정 완료.
-* **2026-09-15 (투표 및 지역구 위젯 안정화):** `/api/poll/daily` 파라미터 정합성 확보, OSM 403 방지 헤더 및 지역구 직접 검색 모달 탑재.
+* **2026-09-15 (Phase 2-2 UI/UX Zone 3 폴리싱):** 
+  - `LifeChangesWidget`: 카테고리 필터 캡슐화, Before(취소선/음영) vs After(에메랄드/가독성) 명암 대비 극대화 및 공감 버튼 인터랙션 개선.
+  - `PersonaLawmakerWidget`: 6대 라이프스타일 탭 디자인 정돈, TOP 6 의원 카드 그리드 균일화, `page.tsx`로부터 `allMembers` Props 연동을 통해 클릭 시 `AssembDetailDrawer` 육각 차트 완벽 표출.

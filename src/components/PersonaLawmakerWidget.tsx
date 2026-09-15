@@ -1,239 +1,234 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { UserCheck, Award, Heart, CheckCircle2, ChevronRight, Briefcase, Baby, Home, Car, CreditCard, ShieldCheck } from "lucide-react";
-import AssembDetailDrawer from "@/components/AssembDetailDrawer";
+import { useEffect, useState } from "react";
 import { BillRankingRow } from "@/types/ranking";
+import AssembDetailDrawer from "@/components/AssembDetailDrawer";
+import {
+  Briefcase,
+  GraduationCap,
+  Baby,
+  Home,
+  Store,
+  HeartHandshake,
+  Award,
+  ChevronRight,
+  Sparkles,
+} from "lucide-react";
 
-interface PersonaBill {
-  bill_id: string;
-  bill_nm: string;
-  process_stat: string;
-  process_dd: string | null;
-  chng_seq: number | null;
-  chng_nm: string | null;
-  tgt_cnts: string | null;
-  bfor_cnts: string | null;
-  aftr_cnts: string | null;
-  opertn_dd: string | null;
-  opertn_se: string | null;
-  symp_cnt: number;
+interface PersonaLawmakerWidgetProps {
+  allMembers?: BillRankingRow[];
 }
 
-interface PersonaMember {
+interface PersonaLawmakerItem {
   assemb_id: string;
   assemb_nm: string;
   pltprt_nm: string;
-  rgn_nm?: string | null;
-  cmit_nm?: string | null;
+  rgn_nm: string | null;
   ctgr_se: string;
-  aprv_cnt: number;
   pure_aprv_cnt: number;
   alt_aprv_cnt: number;
   aprv_scor: number;
-  symp_cnt: number;
   rnkg: number;
-  ttl_motn_cnt?: number;
-  monthly_pace?: number;
-  aprv_rate?: number;
-  cmt_present_cnt?: number;
-  cmt_present_rate?: number;
-  avg_cmt_days?: number | null;
-  own_cmit_motn_rate?: number;
-  score?: number;
-  bills: PersonaBill[];
+  repr_bill_nm: string | null;
 }
 
 const PERSONAS = [
-  { code: "WORK", label: "직장인/청년", desc: "야근 축소, 퇴직급여, 청년 일자리 대변", icon: Briefcase },
-  { code: "CARE", label: "육아/학부모", desc: "육아휴직 확대, 늘봄학교, 통학안전 대변", icon: Baby },
-  { code: "HOUSE", label: "주거/세입자", desc: "전세사기 방지, 원룸 관리비, 청약 대변", icon: Home },
-  { code: "TRAF", label: "운전자/교통", desc: "음주운전 처벌, 도로안전, 주차난 해소", icon: Car },
-  { code: "FIN", label: "금융/소비자", desc: "모바일쿠폰 연장, 금리부담, 사기예방", icon: CreditCard },
-  { code: "LIFE", label: "생활/복지", desc: "시민 생활 편익 및 기초복지 증진", icon: ShieldCheck },
+  { key: "직장인", label: "직장인·노동", icon: Briefcase, desc: "퇴근, 세금, 근로 환경" },
+  { key: "청년", label: "청년·취업", icon: GraduationCap, desc: "취업, 청년 지원, 도약" },
+  { key: "육아", label: "육아·교육", icon: Baby, desc: "보육, 돌봄, 안전한 학교" },
+  { key: "주거", label: "주거·부동산", icon: Home, desc: "전월세, 주거 안정, 정주" },
+  { key: "소상공인", label: "소상공인·자영업", icon: Store, desc: "골목상권, 자영업 보호" },
+  { key: "시니어", label: "시니어·복지", icon: HeartHandshake, desc: "연금, 의료, 건강한 노후" },
 ];
 
-export default function PersonaLawmakerWidget() {
-  const [selectedPersona, setSelectedPersona] = useState("WORK");
-  const [members, setMembers] = useState<PersonaMember[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedMember, setSelectedMember] = useState<BillRankingRow | null>(null);
-  const [, startTransition] = useTransition();
+const PARTY_COLORS: Record<string, string> = {
+  더불어민주당: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300",
+  국민의힘: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/50 dark:text-red-300",
+  조국혁신당: "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/50 dark:text-sky-300",
+  개혁신당: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/50 dark:text-orange-300",
+  진보당: "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-300",
+  기본소득당: "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/50 dark:text-teal-300",
+  사회민주당: "bg-yellow-50 text-yellow-800 border-yellow-200 dark:bg-yellow-950/50 dark:text-yellow-300",
+  무소속: "bg-gray-50 text-gray-700 border-gray-200 dark:bg-slate-800 dark:text-slate-300",
+};
 
-  const fetchPersonaData = async (code: string) => {
-    try {
-      setLoading(true);
-      const res = await fetch(`/api/district/persona?ctgr_se=${code}`);
-      const data = await res.json();
-      setMembers(data.members || []);
-    } catch (error) {
-      console.error(error);
-      setMembers([]);
-    } finally {
-      setLoading(false);
+export default function PersonaLawmakerWidget({ allMembers = [] }: PersonaLawmakerWidgetProps) {
+  const [selectedPersona, setSelectedPersona] = useState("직장인");
+  const [lawmakers, setLawmakers] = useState<PersonaLawmakerItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedDrawerMember, setSelectedDrawerMember] = useState<BillRankingRow | null>(null);
+
+  useEffect(() => {
+    setIsLoading(true);
+    fetch(`/api/district/persona?ctgr_se=${encodeURIComponent(selectedPersona)}`)
+      .then((res) => (res.ok ? res.json() : { lawmakers: [] }))
+      .then((data) => setLawmakers(data.lawmakers || []))
+      .catch((err) => console.error("페르소나 의원 로드 실패:", err))
+      .finally(() => setIsLoading(false));
+  }, [selectedPersona]);
+
+  // 의원 카드 클릭 시 full data 매칭 후 드로어 열기
+  const handleOpenDrawer = (item: PersonaLawmakerItem) => {
+    const fullMember = allMembers.find((m) => m.assemb_id === item.assemb_id);
+    if (fullMember) {
+      setSelectedDrawerMember(fullMember);
+    } else {
+      // allMembers에 없는 경우 기본 필드로 임시 생성
+      setSelectedDrawerMember({
+        assemb_id: item.assemb_id,
+        age: 22,
+        assemb_nm: item.assemb_nm,
+        pltprt_nm: item.pltprt_nm,
+        rgn_nm: item.rgn_nm,
+        cmit_nm: null,
+        term_start_dd: "2024-05-30",
+        is_deferred: 0,
+        monthly_pace: 0,
+        ttl_motn_cnt: item.pure_aprv_cnt + item.alt_aprv_cnt,
+        pure_aprv_cnt: item.pure_aprv_cnt,
+        alt_aprv_cnt: item.alt_aprv_cnt,
+        aprv_cnt: item.pure_aprv_cnt + item.alt_aprv_cnt,
+        dss_cnt: 0,
+        aprv_rate: 0,
+        cmt_present_cnt: 0,
+        cmt_present_rate: 0,
+        avg_cmt_days: null,
+        own_cmit_motn_cnt: 0,
+        own_cmit_motn_rate: 0,
+        score: item.aprv_scor,
+        rnkg: item.rnkg,
+      });
     }
   };
 
-  useEffect(() => {
-    fetchPersonaData(selectedPersona);
-  }, [selectedPersona]);
-
-  const activePersonaObj = PERSONAS.find((p) => p.code === selectedPersona);
-
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      {/* 헤더 */}
-      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 transition-all space-y-6">
+      
+      {/* 1. 상단 타이틀 */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
         <div>
-          <div className="inline-flex items-center gap-1.5 rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
-            <UserCheck className="h-3.5 w-3.5" />
-            페르소나별 입법 성적표
-          </div>
-          <h2 className="mt-2 text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            내 라이프스타일을 챙겨주는 의원은 누구일까요?
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            단독 가결(100%)과 대안반영(70%)을 공정하게 가중 집계하여, 내 삶에 직결된 법안을 실질적으로 통과시킨 의원 순위입니다.
+          <h3 className="text-lg font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <span>내 라이프스타일 대변 의원 성적표</span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-300">
+              TOP 6
+            </span>
+          </h3>
+          <p className="text-xs text-slate-400 mt-0.5">
+            단순 법안 발의가 아닌, 해당 분야에서 실제 본회의 통과(원안 1.0 + 대안 0.7)를 이끌어낸 실적 상위 의원입니다.
           </p>
         </div>
       </div>
 
-      {/* 페르소나 선택 탭 바 */}
-      <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+      {/* 2. 6대 페르소나 선택 탭 */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
         {PERSONAS.map((p) => {
           const Icon = p.icon;
-          const isSelected = selectedPersona === p.code;
+          const isSelected = selectedPersona === p.key;
+
           return (
             <button
-              key={p.code}
-              onClick={() => {
-                startTransition(() => {
-                  setSelectedPersona(p.code);
-                });
-              }}
-              className={`flex flex-col items-center justify-center rounded-xl p-3 text-center transition-all ${
+              key={p.key}
+              onClick={() => setSelectedPersona(p.key)}
+              className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
                 isSelected
-                  ? "border-2 border-indigo-600 bg-indigo-50/70 text-indigo-950 shadow-sm dark:border-indigo-400 dark:bg-indigo-950/40 dark:text-indigo-200"
-                  : "border border-slate-200 bg-slate-50/60 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-300 dark:hover:bg-slate-800"
+                  ? "bg-indigo-50/80 border-indigo-500/80 shadow-xs dark:bg-indigo-950/50 dark:border-indigo-800"
+                  : "bg-slate-50/60 border-slate-200/70 hover:bg-slate-100 dark:bg-slate-800/40 dark:border-slate-800 dark:hover:bg-slate-800"
               }`}
             >
-              <Icon className={`h-5 w-5 ${isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}`} />
-              <span className="mt-1.5 text-xs font-bold">{p.label}</span>
+              <div className="flex items-center justify-between">
+                <span className={`p-1.5 rounded-lg ${isSelected ? "bg-indigo-600 text-white" : "bg-white text-slate-600 dark:bg-slate-700 dark:text-slate-300"}`}>
+                  <Icon className="w-3.5 h-3.5" />
+                </span>
+                <span className={`text-[10px] font-bold ${isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}`}>
+                  대변
+                </span>
+              </div>
+              <div>
+                <strong className={`text-xs block font-bold ${isSelected ? "text-indigo-950 dark:text-indigo-100" : "text-slate-800 dark:text-slate-200"}`}>
+                  {p.label}
+                </strong>
+                <span className="text-[10px] text-slate-400 truncate block">
+                  {p.desc}
+                </span>
+              </div>
             </button>
           );
         })}
       </div>
 
-      {/* 활성화된 페르소나 설명 박스 */}
-      {activePersonaObj && (
-        <div className="mt-3 flex items-center gap-2 rounded-lg bg-slate-100/70 px-3.5 py-2 text-xs text-slate-600 dark:bg-slate-800/60 dark:text-slate-300">
-          <span className="font-semibold text-indigo-600 dark:text-indigo-400">[{activePersonaObj.label}]</span>
-          <span>{activePersonaObj.desc}</span>
+      {/* 3. TOP 6 의원 카드 그리드 */}
+      {isLoading ? (
+        <div className="py-12 text-center text-xs text-slate-400">
+          대변 의원 성적표를 산출하는 중...
         </div>
-      )}
-
-      {/* 랭킹 리스트 */}
-      <div className="mt-5">
-        {loading ? (
-          <div className="py-12 text-center text-sm text-slate-400">의원별 생활 입법 성적을 분석하는 중...</div>
-        ) : members.length === 0 ? (
-          <div className="py-12 text-center text-sm text-slate-400">
-            해당 페르소나 분야에서 본회의 가결 법안을 보유한 의원이 아직 등록되지 않았습니다.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {members.map((m) => (
-              <div
-                key={m.assemb_id}
-                className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 transition-all hover:shadow-md dark:border-slate-800 dark:bg-slate-800/60"
-              >
-                <div>
-                  {/* 순위 및 가결 성과 요약 */}
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                        m.rnkg === 1
-                          ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
-                          : m.rnkg === 2
-                          ? "bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200"
-                          : m.rnkg === 3
-                          ? "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400"
-                          : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
-                      }`}
-                    >
-                      <Award className="h-3.5 w-3.5" />
-                      {m.rnkg}위
+      ) : lawmakers.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          {lawmakers.map((item, idx) => (
+            <button
+              key={item.assemb_id}
+              onClick={() => handleOpenDrawer(item)}
+              className="flex flex-col justify-between p-4 rounded-xl border border-slate-200/80 bg-slate-50/50 hover:bg-white hover:border-indigo-300 hover:shadow-sm transition-all text-left group cursor-pointer dark:bg-slate-800/40 dark:border-slate-800 dark:hover:bg-slate-800"
+            >
+              <div className="space-y-2">
+                {/* 상단: 순위 뱃지, 이름, 정당, 점수 */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-white font-mono text-[11px] font-black dark:bg-slate-100 dark:text-slate-900">
+                      {idx + 1}
                     </span>
-
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="inline-flex items-center gap-1 text-slate-700 dark:text-slate-200 font-semibold" title={`단독가결 ${m.pure_aprv_cnt}건 + 대안반영 ${m.alt_aprv_cnt}건 (가중치 점수: ${m.aprv_scor}점)`}>
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                        실질가결 {m.aprv_cnt}건
-                      </span>
-                      {m.symp_cnt > 0 && (
-                        <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 font-semibold">
-                          <Heart className="h-3.5 w-3.5 fill-rose-500 text-rose-500" />
-                          {m.symp_cnt}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 의원명 및 실적 세부 구성 뱃지 */}
-                  <div className="mt-3 flex items-baseline justify-between">
-                    <div className="flex items-baseline gap-2">
-                      <strong className="text-lg font-extrabold text-slate-900 dark:text-slate-100">
-                        {m.assemb_nm}
-                      </strong>
-                      <span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300">
-                        {m.pltprt_nm}
-                      </span>
-                    </div>
-                    <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                      단독 {m.pure_aprv_cnt} · 대안 {m.alt_aprv_cnt}
+                    <strong className="text-sm font-extrabold text-slate-900 dark:text-slate-100">
+                      {item.assemb_nm}
+                    </strong>
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${PARTY_COLORS[item.pltprt_nm] || "bg-slate-100 text-slate-600"}`}>
+                      {item.pltprt_nm}
                     </span>
                   </div>
 
-                  {/* 대표 가결 입법 목록 */}
-                  <div className="mt-3 space-y-2 border-t border-slate-100 pt-3 dark:border-slate-700/60">
-                    <span className="text-[11px] font-bold text-slate-500 block dark:text-slate-400">
-                      대표 입법 성과 (최대 3건)
+                  <div className="text-right">
+                    <span className="text-xs font-mono font-black text-indigo-600 dark:text-indigo-400">
+                      {Number(item.aprv_scor).toFixed(1)}점
                     </span>
-                    {m.bills.map((b) => (
-                      <div
-                        key={b.bill_id}
-                        className="rounded-lg bg-slate-50 p-2.5 text-xs dark:bg-slate-800/90 border border-slate-100 dark:border-slate-700/40"
-                      >
-                        <p className="font-bold text-slate-800 dark:text-slate-200 line-clamp-1">
-                          {b.chng_nm || b.bill_nm}
-                        </p>
-                        <p className="mt-1 text-[11px] text-blue-700 dark:text-blue-300 line-clamp-2">
-                          {b.aftr_cnts ? `👉 ${b.aftr_cnts}` : `✅ 본회의 ${b.process_stat} (${b.process_dd || "의결"})`}
-                        </p>
-                      </div>
-                    ))}
                   </div>
                 </div>
 
-                {/* 하단 버튼 클릭 시 AssembDetailDrawer 모달 호출 */}
-                <button
-                  onClick={() => setSelectedMember(m as unknown as BillRankingRow)}
-                  className="mt-4 inline-flex w-full items-center justify-center gap-1 rounded-lg bg-slate-100 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-indigo-50 hover:text-indigo-700 dark:bg-slate-700/70 dark:text-slate-200 dark:hover:bg-indigo-950/60 dark:hover:text-indigo-300 cursor-pointer"
-                >
-                  <span>의원 전체 성적표 보기</span>
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                {/* 지역구 및 가결 실적 요약 */}
+                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  <span>{item.rgn_nm || "비례대표"}</span>
+                  <span className="font-mono text-[11px]">
+                    원안 {item.pure_aprv_cnt} · 대안 {item.alt_aprv_cnt}건
+                  </span>
+                </div>
 
-      {/* 기존 의원 상세 활동 드로어 모달 장착 */}
+                {/* 대표 가결 법안 1건 */}
+                {item.repr_bill_nm && (
+                  <div className="pt-1.5 border-t border-slate-200/60 dark:border-slate-800">
+                    <span className="text-[10px] text-slate-400 block font-medium">대표 통과 법안</span>
+                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate group-hover:text-indigo-600 transition-colors">
+                      {item.repr_bill_nm}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* 하단 화살표 링크 */}
+              <div className="mt-3 pt-2 border-t border-slate-200/50 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-bold text-slate-400 group-hover:text-indigo-600 transition-colors">
+                <span>상세 성적표 보기</span>
+                <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="py-12 text-center text-xs text-slate-400">
+          해당 페르소나 분야에 집계된 의원 실적이 없습니다.
+        </div>
+      )}
+
+      {/* 모달 연동: 상세 성적표 드로어 */}
       <AssembDetailDrawer
-        assemb={selectedMember}
-        onClose={() => setSelectedMember(null)}
+        assemb={selectedDrawerMember}
+        onClose={() => setSelectedDrawerMember(null)}
       />
-    </section>
+    </div>
   );
 }

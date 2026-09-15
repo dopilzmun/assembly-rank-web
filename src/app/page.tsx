@@ -234,7 +234,7 @@ export default async function HomePage() {
           <LifeChangesWidget />
 
           {/* 3.3 페르소나별 입법 성적표 위젯 */}
-          <PersonaLawmakerWidget />
+          <PersonaLawmakerWidget allMembers={allMembers} />
 
         </div>
       </section>
