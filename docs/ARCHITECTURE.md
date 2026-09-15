@@ -175,7 +175,14 @@
   3. `community` (시민 민심·한마디): 4대 감정 스탬프 + 지역구 주민 한마디 게시판
 
 ---
-   
+
+### 🌐 글로벌 레이아웃 (`src/app/layout.tsx`)
+- `Navigation.tsx` (상단 글로벌 헤더: 데스크톱 네비게이션, 브랜드 로고)
+- `<div className="flex-1 pb-16 sm:pb-0">` (모바일 하단 탭바 세이프 마진)
+- `MobileBottomNav.tsx` (모바일 전용 하단 플로팅 탭바: 홈 / 300인 랭킹 / 가결 속보 / 상임위 병목 / 쟁점 투표)
+
+---
+
 ## 6. 변경 이력 (Changelog)
 * **2026-09-14:** 생활 입법 Before & After(`LifeChangesWidget`) 및 DB 수집 파이프라인 추가.
 * **2026-09-15 (Phase 1 UI/UX 개선):** 메인 홈 화면(`src/app/page.tsx`) 4대 테마 Zone 구획화(Zone 1: 참여/동네, Zone 2: 생활/페르소나, Zone 3: 데이터랩/랭킹, Zone 4: 시민광장) 및 제브라 섹셔닝(배경 톤 교차), 통합 섹션 헤더 디자인 적용 완료.
