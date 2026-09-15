@@ -26,9 +26,14 @@ export default function DailyBillPollWidget() {
       .then((data) => {
         if (data && data.poll) {
           setPoll(data.poll);
-          const savedVote = localStorage.getItem(`voted_poll_${data.poll.poll_id}`);
-          if (savedVote === "pro" || savedVote === "con") {
-            setVotedChoice(savedVote);
+          if (data.has_voted && data.user_choice) {
+            setVotedChoice(data.user_choice);
+            localStorage.setItem(`voted_poll_${data.poll.poll_id}`, data.user_choice);
+          } else {
+            const savedVote = localStorage.getItem(`voted_poll_${data.poll.poll_id}`);
+            if (savedVote === "pro" || savedVote === "con") {
+              setVotedChoice(savedVote);
+            }
           }
         }
       })
@@ -44,10 +49,15 @@ export default function DailyBillPollWidget() {
       const res = await fetch("/api/poll/daily", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ poll_id: poll.poll_id, vote_choice: choice }),
+        body: JSON.stringify({
+          poll_id: poll.poll_id,
+          vote_choice: choice,
+        }),
       });
 
-      if (res.ok) {
+      const data = await res.json();
+
+      if (res.ok && data.success) {
         setVotedChoice(choice);
         localStorage.setItem(`voted_poll_${poll.poll_id}`, choice);
         setPoll((prev) => {
@@ -58,9 +68,16 @@ export default function DailyBillPollWidget() {
             con_cnt: choice === "con" ? prev.con_cnt + 1 : prev.con_cnt,
           };
         });
+      } else if (data.already_voted) {
+        alert(data.message || "이미 오늘 투표에 참여하셨습니다.");
+        setVotedChoice(data.user_choice || choice);
+        localStorage.setItem(`voted_poll_${poll.poll_id}`, data.user_choice || choice);
+      } else {
+        alert(data.error || "투표 처리에 실패했습니다. 다시 시도해 주세요.");
       }
     } catch (err) {
       console.error("투표 등록 실패:", err);
+      alert("네트워크 오류로 투표에 실패했습니다.");
     } finally {
       setIsSubmitting(false);
     }

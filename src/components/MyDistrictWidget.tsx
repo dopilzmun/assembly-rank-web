@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import { BillRankingRow } from "@/types/ranking";
 import AssembDetailDrawer from "@/components/AssembDetailDrawer";
-import { MapPin, Navigation, MessageSquare, ChevronRight, UserCheck } from "lucide-react";
+import {
+  MapPin,
+  Navigation,
+  MessageSquare,
+  ChevronRight,
+  UserCheck,
+  Search,
+  X,
+} from "lucide-react";
 
 interface MyDistrictWidgetProps {
   allMembers: BillRankingRow[];
@@ -33,6 +41,10 @@ export default function MyDistrictWidget({ allMembers }: MyDistrictWidgetProps) 
   const [isVerifying, setIsVerifying] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
+  // 수동 지역구 선택 모달 상태
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
   useEffect(() => {
     const savedDistrict = localStorage.getItem("user_district");
     if (savedDistrict) {
@@ -42,7 +54,14 @@ export default function MyDistrictWidget({ allMembers }: MyDistrictWidgetProps) 
   }, [allMembers]);
 
   const matchMember = (rgnName: string) => {
-    const matched = allMembers.find((m) => m.rgn_nm && m.rgn_nm.includes(rgnName));
+    // 1. 정확 매칭
+    let matched = allMembers.find((m) => m.rgn_nm === rgnName);
+    // 2. 부분 매칭
+    if (!matched) {
+      matched = allMembers.find(
+        (m) => m.rgn_nm && (m.rgn_nm.includes(rgnName) || rgnName.includes(m.rgn_nm))
+      );
+    }
     if (matched) {
       setMember(matched);
       fetchLatestFeedback(matched.assemb_id);
@@ -63,9 +82,10 @@ export default function MyDistrictWidget({ allMembers }: MyDistrictWidgetProps) 
     }
   };
 
+  // 1초 GPS 인증
   const handleVerifyLocation = () => {
     if (!navigator.geolocation) {
-      alert("브라우저가 위치 정보를 지원하지 않습니다.");
+      alert("브라우저가 위치 정보를 지원하지 않습니다. 아래 [직접 선택]을 이용해 주세요.");
       return;
     }
 
@@ -83,26 +103,53 @@ export default function MyDistrictWidget({ allMembers }: MyDistrictWidgetProps) 
           });
 
           const data = await res.json();
-          if (data && data.district) {
-            setDistrict(data.district);
-            localStorage.setItem("user_district", data.district);
-            matchMember(data.district);
+          if (res.ok && (data.district || data.rgn_nm)) {
+            const targetDistrict = data.district || data.rgn_nm;
+            setDistrict(targetDistrict);
+            localStorage.setItem("user_district", targetDistrict);
+            matchMember(targetDistrict);
           } else {
-            alert("지역구를 찾을 수 없습니다. 다시 시도해 주세요.");
+            alert(
+              "현재 위치의 지역구를 특정하지 못했습니다. [지역구 직접 선택] 버튼으로 거주 동네를 선택해 주세요."
+            );
+            setIsSearchModalOpen(true);
           }
         } catch (err) {
           console.error("위치 인증 실패:", err);
+          alert("위치 서버 통신 중 오류가 발생했습니다. 직접 선택을 이용해 주세요.");
         } finally {
           setIsVerifying(false);
         }
       },
       () => {
-        alert("위치 권한 허용이 필요합니다.");
+        alert("위치 권한이 차단되어 있습니다. [지역구 직접 선택]으로 설정해 주세요.");
         setIsVerifying(false);
+        setIsSearchModalOpen(true);
       },
       { timeout: 10000 }
     );
   };
+
+  // 수동 지역구 선택
+  const handleSelectMember = (selected: BillRankingRow) => {
+    if (selected.rgn_nm) {
+      setDistrict(selected.rgn_nm);
+      localStorage.setItem("user_district", selected.rgn_nm);
+      setMember(selected);
+      fetchLatestFeedback(selected.assemb_id);
+    }
+    setIsSearchModalOpen(false);
+  };
+
+  // 검색어 필터링
+  const filteredMembers = allMembers
+    .filter((m) => m.rgn_nm && m.rgn_nm !== "비례대표")
+    .filter(
+      (m) =>
+        m.rgn_nm?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        m.assemb_nm.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .slice(0, 8);
 
   return (
     <div className="h-full flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 transition-all">
@@ -115,14 +162,23 @@ export default function MyDistrictWidget({ allMembers }: MyDistrictWidgetProps) 
             <span>우리 동네 국회의원 & 주민 한마디</span>
           </div>
 
-          <button
-            onClick={handleVerifyLocation}
-            disabled={isVerifying}
-            className="group inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-emerald-600 transition-colors cursor-pointer"
-          >
-            <Navigation className={`h-3 w-3 ${isVerifying ? "animate-spin" : ""}`} />
-            <span>{isVerifying ? "인증 중..." : district ? "재인증" : "1초 GPS 인증"}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsSearchModalOpen(true)}
+              className="text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer"
+            >
+              직접 선택
+            </button>
+            <span className="text-slate-300 text-xs">|</span>
+            <button
+              onClick={handleVerifyLocation}
+              disabled={isVerifying}
+              className="group inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-emerald-600 transition-colors cursor-pointer"
+            >
+              <Navigation className={`h-3 w-3 ${isVerifying ? "animate-spin text-emerald-600" : ""}`} />
+              <span>{isVerifying ? "인증 중..." : district ? "GPS 재인증" : "1초 GPS 인증"}</span>
+            </button>
+          </div>
         </div>
 
         {/* 2. 본문 내용 */}
@@ -170,7 +226,7 @@ export default function MyDistrictWidget({ allMembers }: MyDistrictWidgetProps) 
                 내 동네 국회의원을 확인해 보세요
               </p>
               <p className="mt-0.5 text-xs text-slate-400">
-                GPS 1초 인증을 누르면 거주 지역구 의원의 실시간 성적표가 연결됩니다.
+                GPS 1초 인증 또는 [직접 선택]으로 거주 지역구를 설정하세요.
               </p>
             </div>
           </div>
@@ -191,16 +247,90 @@ export default function MyDistrictWidget({ allMembers }: MyDistrictWidgetProps) 
             <ChevronRight className="h-4 w-4 text-emerald-600" />
           </button>
         ) : (
-          <button
-            onClick={handleVerifyLocation}
-            disabled={isVerifying}
-            className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-emerald-500 dark:hover:text-white"
-          >
-            <Navigation className={`h-4 w-4 ${isVerifying ? "animate-spin" : ""}`} />
-            <span>{isVerifying ? "동네 인증 중..." : "지금 바로 1초 동네 인증하기"}</span>
-          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={handleVerifyLocation}
+              disabled={isVerifying}
+              className="py-3 px-3 rounded-xl bg-slate-900 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-emerald-500 dark:hover:text-white"
+            >
+              <Navigation className={`h-4 w-4 ${isVerifying ? "animate-spin" : ""}`} />
+              <span>{isVerifying ? "인증 중..." : "1초 GPS 인증"}</span>
+            </button>
+            <button
+              onClick={() => setIsSearchModalOpen(true)}
+              className="py-3 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm border border-slate-200 transition-all flex items-center justify-center gap-1.5 cursor-pointer dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-700"
+            >
+              <Search className="h-4 w-4 text-slate-500" />
+              <span>지역구 직접 검색</span>
+            </button>
+          </div>
         )}
       </div>
+
+      {/* 수동 지역구 검색/선택 모달 */}
+      {isSearchModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in">
+          <div className="relative w-full max-w-md bg-white rounded-2xl p-5 shadow-2xl space-y-4 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="font-bold text-base text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                <MapPin className="h-4 w-4 text-emerald-600" />
+                <span>내 지역구 직접 선택</span>
+              </h3>
+              <button
+                onClick={() => setIsSearchModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 검색창 */}
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="지역구명 또는 국회의원 이름 (예: 종로, 분당, 홍길동)"
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs sm:text-sm focus:outline-hidden focus:ring-2 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                autoFocus
+              />
+            </div>
+
+            {/* 검색 결과 리스트 */}
+            <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1">
+              {filteredMembers.length > 0 ? (
+                filteredMembers.map((m) => (
+                  <button
+                    key={m.assemb_id}
+                    onClick={() => handleSelectMember(m)}
+                    className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-emerald-50/70 border border-transparent hover:border-emerald-200 transition-colors text-left cursor-pointer dark:hover:bg-slate-800"
+                  >
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <strong className="text-xs sm:text-sm text-slate-900 dark:text-slate-100">
+                          {m.assemb_nm}
+                        </strong>
+                        <span className="text-[11px] font-semibold text-slate-500">
+                          ({m.pltprt_nm})
+                        </span>
+                      </div>
+                      <span className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">
+                        {m.rgn_nm}
+                      </span>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-slate-300" />
+                  </button>
+                ))
+              ) : (
+                <div className="py-8 text-center text-xs text-slate-400">
+                  검색 결과가 없습니다.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 모달 연동: 의정활동 상세 드로어 */}
       <AssembDetailDrawer

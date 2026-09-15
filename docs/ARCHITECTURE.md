@@ -149,3 +149,7 @@
 * **2026-09-15 (Phase 2 UI/UX 카드 통일 & 폴리싱):** Zone 1의 `DailyBillPollWidget`과 `MyDistrictWidget`에 높이 균등(`h-full flex flex-col justify-between`) 구조, 캡슐형 헤더 뱃지, 2줄 말줄임(`line-clamp-2`)을 적용하여 텍스트 길이에 따른 레이아웃 불균형 해소.
 * **2026-09-15 (시민 스탬프 데이터 파이프라인 정상화):** `assemb_stamp_log` 물리 테이블 DDL 보장 및 Next.js 16 비동기 파라미터 처리 완료.
 * **2026-09-15 (홈 UX 순서 재배치 - Option A 적용):** `CitizenReactionWidget`을 Zone 2로 전진 배치.
+* **2026-09-15 (투표 및 지역구 위젯 안정화):** 
+  - `DailyBillPollWidget`: `/api/poll/daily`의 `vote_choice`/`vote_se` 파라미터 규격 통일, 중복 투표 알림 및 상태 연동 수정.
+  - `MyDistrictWidget`: OpenStreetMap Nominatim 403 차단 방지를 위한 `User-Agent` 헤더 적용, 자치구 정밀 매칭 복구 및 GPS 실패 시에도 100% 선택 가능한 '지역구 직접 검색/선택 모달' 기능 신규 탑재.
+* **2026-09-15 (Phase 2 UI/UX 카드 통일 & 폴리싱):** Zone 1의 `DailyBillPollWidget`과 `MyDistrictWidget`에 높이 균등(`h-full flex flex-col justify-between`) 구조 적용.
